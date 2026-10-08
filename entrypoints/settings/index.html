@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Direct Pump settings</title></head>
+  <body><main>
+    <div class="brand"><img src="/icon/48.png" width="36" height="36" alt=""><div><h1>DIRECT PUMP</h1><p>Trading settings</p></div></div>
+    <form>
+      <label>Solana RPC<input name="rpcUrl" type="url" required spellcheck="false" autocomplete="off"></label>
+      <button type="button" id="rpc-test">Test RPC connection</button>
+      <label>Slippage (%)<input name="slippage" type="number" min="0.01" max="20" step="0.01" required></label>
+      <label>Buy presets (SOL)<input name="buyPresets" type="text" required placeholder="0.01, 0.05, 0.1, 0.25, 0.5, 1"></label>
+      <label>Sell presets (%)<input name="sellPresets" type="text" required placeholder="25, 50, 75, 100"></label>
+      <label>Maximum priority fee (SOL)<input name="priority" type="number" min="0" max="0.01" step="0.000001" required></label>
+      <label>Jupiter API key<input name="jupiterApiKey" type="password" spellcheck="false" autocomplete="off" placeholder="Required for automatic SOL conversion"></label>
+      <small>Required for non-SOL pairs and routed venues. Direct SOL pairs need no key. API usage is subject to your Jupiter plan.</small>
+      <details class="advanced"><summary>Advanced · optional spend limits</summary><label class="check"><input name="spendLimitsEnabled" type="checkbox">Enable maximum buy limits</label><small>Optional protection against oversized orders. Disabled by default.</small><div id="spend-limits" hidden>
+      <label>Maximum buy (SOL)<input name="maxBuySol" type="text" inputmode="decimal" required></label>
+      </div></details>
+      <button type="submit">Save settings</button>
+    </form>
+    <p role="status" aria-live="polite" id="status"></p>
+    <small>Private settings stay in extension storage. Every trade requires Phantom approval.</small>
+  </main><script type="module" src="./main.ts"></script></body>
+</html>

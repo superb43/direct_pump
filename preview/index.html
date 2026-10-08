@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><title>Direct Pump · Local UI test</title></head>
+<body style="background:#080d14;color:#c9d3e0;font:16px system-ui;padding:32px">
+  <h1>Direct Pump · Local UI test</h1>
+  <p>Mock page, wallet and transaction responses. No real signing or RPC calls.</p>
+  <label>Response <select id="scenario"><option value="confirmed">Confirmed</option><option value="rejected">Approval rejected</option><option value="simulation">Simulation error</option><option value="walletError">Phantom rejected transaction</option><option value="unknown">Unresolved response</option></select></label>
+  <button id="navigate">Change token</button><button id="change-wallet">Change Phantom account (mock)</button><p id="calls">Trade requests: 0</p><p id="settings-status"></p>
+  <script type="module" src="./main.ts"></script>
+</body></html>

@@ -1,0 +1,19 @@
+node_modules/
+.wxt/
+.output/
+output/playwright/
+.playwright-cli/
+*.tsbuildinfo
+!package.json
+!package-lock.json
+!tsconfig.json
+!public/icon/*.png
+!assets/icon/*.png
+!public/lucide-LICENSE.txt
+
+# Local credentials, logs and operating-system files
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store

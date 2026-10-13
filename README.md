@@ -47,19 +47,17 @@ So I built Direct Pump. It keeps the discovery tools I already use and adds exec
 
 Basic and Pro are two execution modes in the same extension. Pro currently uses a **self-hosted personal server**. A managed subscription service is not available yet.
 
-| | Basic | Pro · Self-hosted |
-| --- | --- | --- |
-| Wallet | Connected Phantom wallet | Separately created and funded server wallet |
-| Approval and execution | Manual Phantom approval for every trade | Review and register an order; the server signs and executes when its conditions are met |
-| Quick trading | SOL-amount buys and percentage sells | Market buys/sells, presets, and quantity input |
-| Conditional orders | Not supported | MC limits, TP/SL, and trailing exits |
-| Split exits and entry protection | Not supported | Up to ten exit steps; protection based on confirmed entry quantity |
-| Browser closed | New trades cannot be approved | Registered orders continue while the server and signer are running |
-| Deposits and withdrawals | Managed in Phantom | Deposit address and QR; withdrawals to saved recipients |
-| Alerts | Status in the panel | Optional Chrome and Telegram alerts |
-| Key management | Managed by Phantom | Encrypted server keystore and separate backup |
-| Setup | Extension, Phantom, and RPC | Extension plus Node server, HTTPS, pairing, and a server wallet |
-| Operating costs | Chain/protocol costs and your RPC/API plans | Applicable Basic costs plus server, domain, and other infrastructure costs |
+| Feature | Basic | Pro |
+| --- | :---: | :---: |
+| Instant Trade | ❌ | ✅ |
+| Limit Orders | ❌ | ✅ |
+| TP/SL & Trailing | ❌ | ✅ |
+| Split Exit | ❌ | ✅ |
+| Entry Protection | ❌ | ✅ |
+| Background Orders | ❌ | ✅ |
+| Chrome / Telegram Alerts | ❌ | ✅ |
+
+`Instant Trade` skips a separate Phantom approval. Registered orders run while your server and signer are online.
 
 Use **Basic** for trades you approve yourself, or **Pro** for reviewed conditional orders and exit strategies. Pro does not import your Phantom key. [Set up Pro and explore its screens →](Docs/PROJECT.md#pro-setup)
 
@@ -120,6 +118,7 @@ Slippage limits and order conditions do not guarantee a fill or execution price.
 WXT · Vanilla TypeScript · Chrome Manifest V3 · Solana. One side panel and shared execution logic, without a frontend framework.
 
 ```sh
+npm run check:docs  # Local documentation links and anchors
 npm run check       # Extension and server type checks
 npm test            # Offline tests
 npm run build       # .output/chrome-mv3

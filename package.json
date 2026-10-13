@@ -18,7 +18,7 @@
     "prepare:release": "node scripts/prepare-release.mjs"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "0.31.1",
+    "@coral-xyz/anchor": "0.32.1",
     "@meteora-ag/cp-amm-sdk": "1.5.1",
     "@meteora-ag/dynamic-bonding-curve-sdk": "1.5.13",
     "@pump-fun/pump-sdk": "2.0.0",

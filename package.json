@@ -12,7 +12,8 @@
     "test": "vitest run",
     "postinstall": "wxt prepare",
     "test:sites": "node scripts/verify-sites.mjs",
-    "verify": "npm run check && npm test && npm run build && npm run build:pro",
+    "check:docs": "node --test scripts/docs.test.mjs && node scripts/check-docs.mjs",
+    "verify": "npm run check:docs && npm run check && npm test && npm run build && npm run build:pro",
     "verify:browser": "npm run verify && npm run test:sites",
     "check:publication": "node --test scripts/publication.test.mjs && node scripts/check-publication.mjs && node scripts/third-party-notices.mjs",
     "prepare:release": "node scripts/prepare-release.mjs"

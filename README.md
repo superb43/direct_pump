@@ -10,6 +10,10 @@
 
 ### Basic mode · Trading panel
 
+<p align="center">
+  <img src="Docs/media/demo.gif" width="800" alt="Direct Pump Basic mode demo: buy from the token page, approve in Phantom, and see confirmation">
+</p>
+
 <img src="Docs/media/basic-trade.png" width="390" alt="Basic mode: SOL buy presets, percentage sells, holdings value, and estimated net PnL">
 
 > Screenshots show the actual interface with synthetic sample data. Balances, returns, and receipts are illustrative, not real trading results. This README shows Basic mode only; [Pro screenshots and setup](Docs/PROJECT.md#pro-setup) are in the project guide.

@@ -4,8 +4,11 @@
 
 <h1 align="center">Direct Pump</h1>
 
-<p align="center"><strong>Discover tokens where you already trade. Execute without leaving the page.</strong></p>
-<p align="center">A Chrome side panel for Solana token pages on GMGN, AXIOM, and FOMO Family.</p>
+<p align="center"><strong>Keep the terminal. Skip the terminal fee.</strong></p>
+<p align="center">Your execution layer for Axiom, GMGN, and FOMO Family.</p>
+<p align="center"><strong>0% added terminal fees. Phantom-approved (Basic). Open source.</strong></p>
+<p align="center">Trade supported Solana tokens without leaving the charts you already use. Network, protocol, and other execution costs still apply.</p>
+<p align="center">Basic trades require your approval in Phantom. Pro executes reviewed orders through your self-hosted server wallet.</p>
 <p align="center"><a href="#quick-start">Install</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="Docs/PROJECT.md#pro-setup">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
 
 ### Basic mode · Trading panel

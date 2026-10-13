@@ -90,10 +90,13 @@ over unrelated communities or private trading activity.
 
 ### Supported versions
 
-The latest tagged release is the supported security target. Older releases may
-receive fixes at maintainer discretion; this is not an LTS commitment. Changes on
-`main` are development code. An open-source license is not a security audit,
-custody guarantee, execution guarantee or promise of investment returns.
+Before the first tagged release, security reports are accepted for the current
+`main` commit on a best-effort basis; include the affected commit SHA. Once tagged
+releases are published, the latest tagged release is the security-maintenance
+target. Older releases may receive fixes at maintainer discretion; this is not an
+LTS commitment. Development code and previews are not a production-safety
+commitment. An open-source license is not a security audit, custody guarantee,
+execution guarantee or promise of investment returns.
 
 ### Private vulnerability reports
 

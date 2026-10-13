@@ -48,7 +48,7 @@ export async function checkPublication() {
   if (pkg.license !== 'GPL-3.0-only' || lock.packages[''].license !== pkg.license) throw new Error('Project SPDX declarations differ.');
   const hash = value => createHash('sha256').update(value).digest('hex');
   if (hash((await readProjectNotices()).LICENSE) !== hash(await readFile('node_modules/@raydium-io/raydium-sdk-v2/LICENSE'))) throw new Error('GPLv3 text differs from the verified unmodified upstream copy.');
-  const required = ['Docs/PROJECT.md', 'Docs/licenses/NOTICES.md', 'Docs/licenses/preferred-sources.json', '.github/CODEOWNERS'];
+  const required = ['Docs/PROJECT.md', 'Docs/licenses/NOTICES.md', 'Docs/licenses/preferred-sources.json', '.github/CODEOWNERS', '.github/SECURITY.md'];
   for (const file of required) await readFile(file);
   for (const file of ['.github/workflows/ci.yml', '.github/workflows/security.yml', '.github/workflows/release-build.yml']) {
     const text = await readFile(file, 'utf8');

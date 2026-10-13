@@ -21,7 +21,7 @@
     "@coral-xyz/anchor": "0.31.1",
     "@meteora-ag/cp-amm-sdk": "1.5.1",
     "@meteora-ag/dynamic-bonding-curve-sdk": "1.5.13",
-    "@pump-fun/pump-sdk": "2.0.0",
+    "@pump-fun/pump-sdk": "4.0.0",
     "@pump-fun/pump-swap-sdk": "1.20.0",
     "@raydium-io/raydium-sdk-v2": "0.2.73-alpha",
     "@solana/spl-token": "0.4.15",

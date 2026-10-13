@@ -35,7 +35,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
+          "path": "Docs/licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
           "source": "https://raw.githubusercontent.com/coral-xyz/anchor/47284f8f0b9844c6b83234aa90f556bad00e12ed/LICENSE",
           "kind": "upstream-license-text",
           "sha256": "66a06877935811daba7b7c33c4eedf0e6017616a4cc1bb5faa4dae72c13f638e"
@@ -51,7 +51,7 @@
       "integrity": "sha512-NhNEku4F3zzUSBtrYz84FzYWm48+9OvmT1Hhnwr6GnPQry2dsEqH/ti/7ASjjpoFTWRnPXrjAIT1qM6Isop+LQ==",
       "notices": [
         {
-          "path": "licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
+          "path": "Docs/licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
           "source": "https://raw.githubusercontent.com/coral-xyz/anchor/47284f8f0b9844c6b83234aa90f556bad00e12ed/LICENSE",
           "kind": "upstream-license-text",
           "sha256": "66a06877935811daba7b7c33c4eedf0e6017616a4cc1bb5faa4dae72c13f638e"
@@ -89,13 +89,13 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
+          "path": "Docs/licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
           "source": "https://registry.npmjs.org/bs58/4.0.1",
           "kind": "published-readme-license-section",
           "sha256": "13ced6a635a66e22c68575d467b7a4ac937cdd83d9f8ce9e5d00352be045cdfb"
         },
         {
-          "path": "licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/bs58/4.0.1",
           "kind": "published-package-license-declaration",
           "sha256": "945ed63a49f0ebe9dda4919f007c79e2f9642758806e8c7bbb614eb058b5ddfe"
@@ -111,7 +111,7 @@
       "integrity": "sha512-9N8AU9F0ubriKfNE3g1WF0/4dtlGXoBN/hd1PvbNBamBNwRgHxH4P+o3Zt7rSEloW1HUs6LfZEchlx9fW7POYw==",
       "notices": [
         {
-          "path": "licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
+          "path": "Docs/licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
           "source": "https://raw.githubusercontent.com/coral-xyz/anchor/47284f8f0b9844c6b83234aa90f556bad00e12ed/LICENSE",
           "kind": "upstream-license-text",
           "sha256": "66a06877935811daba7b7c33c4eedf0e6017616a4cc1bb5faa4dae72c13f638e"
@@ -200,7 +200,7 @@
       "integrity": "sha512-RnYh3GDMTaLvrmu9Hz4W11ulRNQYhrQoOOJyhpMa/wMRuY7ibhoQczcA17R3Zy3fKyhveiLmYI+GKF4pnp2nVg==",
       "notices": [
         {
-          "path": "licenses/upstream/@pump-fun__agent-payments-sdk@1.0.7/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/@pump-fun__agent-payments-sdk@1.0.7/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/@pump-fun/agent-payments-sdk/1.0.7",
           "kind": "published-package-license-declaration",
           "sha256": "aa323d42e3c9cbcccaffa49a9caca34f02f31944900b2696f32ebce1480341ef"
@@ -220,7 +220,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/@pump-fun__pump-sdk@2.0.0/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/@pump-fun__pump-sdk@2.0.0/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/@pump-fun/pump-sdk/2.0.0",
           "kind": "published-package-license-declaration",
           "sha256": "12ce12887544d7d237bfb1b8800a1e81e6d9a6c6a03492da7fd71bdd8419caa6"
@@ -240,13 +240,13 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/@pump-fun__pump-swap-sdk@1.20.0/LICENSE-FROM-README.txt",
+          "path": "Docs/licenses/upstream/@pump-fun__pump-swap-sdk@1.20.0/LICENSE-FROM-README.txt",
           "source": "https://registry.npmjs.org/@pump-fun/pump-swap-sdk/1.20.0",
           "kind": "published-readme-license-section",
           "sha256": "a52e1b72948844531a7c24b8aeed8bc778dc9d43938e4ea1494f8768db6774f0"
         },
         {
-          "path": "licenses/upstream/@pump-fun__pump-swap-sdk@1.20.0/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/@pump-fun__pump-swap-sdk@1.20.0/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/@pump-fun/pump-swap-sdk/1.20.0",
           "kind": "published-package-license-declaration",
           "sha256": "d89e33d43a14fd88f08347260ff275297a66773a6ecc5d0f40f7ffb6a5b78e72"
@@ -587,13 +587,13 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
+          "path": "Docs/licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
           "source": "https://registry.npmjs.org/bs58/4.0.1",
           "kind": "published-readme-license-section",
           "sha256": "13ced6a635a66e22c68575d467b7a4ac937cdd83d9f8ce9e5d00352be045cdfb"
         },
         {
-          "path": "licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/bs58/4.0.1",
           "kind": "published-package-license-declaration",
           "sha256": "945ed63a49f0ebe9dda4919f007c79e2f9642758806e8c7bbb614eb058b5ddfe"
@@ -779,7 +779,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/@wxt-dev__browser@0.3.4/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/@wxt-dev__browser@0.3.4/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/@wxt-dev/browser/0.3.4",
           "kind": "published-package-license-declaration",
           "sha256": "dbc811b9fb8815ade16354b4edde9750c7f391a6662ff2fb11fce25ffd95c6b0"
@@ -799,13 +799,13 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/agent-base@6.0.2/LICENSE-FROM-README.txt",
+          "path": "Docs/licenses/upstream/agent-base@6.0.2/LICENSE-FROM-README.txt",
           "source": "https://registry.npmjs.org/agent-base/6.0.2",
           "kind": "published-readme-license-section",
           "sha256": "5f6b2ed15b13782de70b90e5897baeae2737bfd8fd4e5dec5f89b0264b827c4c"
         },
         {
-          "path": "licenses/upstream/agent-base@6.0.2/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/agent-base@6.0.2/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/agent-base/6.0.2",
           "kind": "published-package-license-declaration",
           "sha256": "cf7bdeb98c73343c3de547356cd4254396c18d74410e8ec2891da4f6baade184"
@@ -1045,13 +1045,13 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
+          "path": "Docs/licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
           "source": "https://registry.npmjs.org/bs58/4.0.1",
           "kind": "published-readme-license-section",
           "sha256": "13ced6a635a66e22c68575d467b7a4ac937cdd83d9f8ce9e5d00352be045cdfb"
         },
         {
-          "path": "licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/bs58/4.0.1",
           "kind": "published-package-license-declaration",
           "sha256": "945ed63a49f0ebe9dda4919f007c79e2f9642758806e8c7bbb614eb058b5ddfe"
@@ -1467,7 +1467,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/es6-promisify@5.0.0/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/es6-promisify@5.0.0/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/es6-promisify/5.0.0",
           "kind": "published-package-license-declaration",
           "sha256": "936df2d2113fd0bccaa7ee3c6aec31cd488a6a4cd06cf8ae828ec0b9e170b547"
@@ -1753,13 +1753,13 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/https-proxy-agent@5.0.1/LICENSE-FROM-README.txt",
+          "path": "Docs/licenses/upstream/https-proxy-agent@5.0.1/LICENSE-FROM-README.txt",
           "source": "https://registry.npmjs.org/https-proxy-agent/5.0.1",
           "kind": "published-readme-license-section",
           "sha256": "6fc12f245f74f3bf4936d6010e0f528739092280ef4c4046718fa5a174a5ba28"
         },
         {
-          "path": "licenses/upstream/https-proxy-agent@5.0.1/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/https-proxy-agent@5.0.1/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/https-proxy-agent/5.0.1",
           "kind": "published-package-license-declaration",
           "sha256": "cea3b607a9fcbfac452c6550b82dc74773ad192d99c34d1bf363678998a7a5de"
@@ -2173,7 +2173,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/qrcode-generator@2.0.4/LICENSE",
+          "path": "Docs/licenses/upstream/qrcode-generator@2.0.4/LICENSE",
           "source": "https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/83b7e8fe3fddd3b0368dbafd6ce56995bd25e3c8/LICENSE",
           "kind": "upstream-license-text",
           "sha256": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c"
@@ -2437,7 +2437,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/tr46@0.0.3/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/tr46@0.0.3/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/tr46/0.0.3",
           "kind": "published-package-license-declaration",
           "sha256": "99fc02f45b263d48cffba1cef0e6c4644fe1acba1aeaa61306c4453cb71cde37"
@@ -2607,7 +2607,7 @@
       },
       "notices": [
         {
-          "path": "licenses/upstream/wxt@0.21.4/PUBLISHER-NOTICE.json",
+          "path": "Docs/licenses/upstream/wxt@0.21.4/PUBLISHER-NOTICE.json",
           "source": "https://registry.npmjs.org/wxt/0.21.4",
           "kind": "published-package-license-declaration",
           "sha256": "eb8abfa274efda27b04a7a3b74a0c3553dc1ddefb10587106469ecd5e3002eca"

@@ -14,10 +14,25 @@ export function publicationFiles() {
   return [...new Set(execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean))].sort();
 }
 
+export function projectNotices(policy) {
+  return Object.fromEntries(['LICENSE', 'COPYRIGHT', 'VENDOR'].map(name => {
+    const start = `<!-- ${name}:START -->\n~~~text\n`, end = `~~~\n<!-- ${name}:END -->`;
+    if (policy.split(start).length !== 2 || policy.split(end).length !== 2) throw new Error(`Missing or duplicated project notice: ${name}`);
+    const from = policy.indexOf(start) + start.length, to = policy.indexOf(end);
+    if (to <= from) throw new Error(`Empty or malformed project notice: ${name}`);
+    return [name, policy.slice(from, to)];
+  }));
+}
+
+export async function readProjectNotices() {
+  return { ...projectNotices(await readFile('Docs/PROJECT.md', 'utf8')),
+    'THIRD_PARTY_NOTICES.md': await readFile('Docs/licenses/NOTICES.md', 'utf8') };
+}
+
 export function validatePublicationPaths(files) {
   const privateDirectory = /(^|\/)(?:node_modules|\.git|\.omx|\.codex|\.claude|\.agents|\.impeccable|\.wxt|\.output|server-dist|pro-state|\.private|output|\.playwright-cli)(\/|$)/;
   const privateSuffix = /\.(?:enc|pem|key|sqlite(?:-wal|-shm|-journal)?|db(?:-wal|-shm|-journal)?|sock|log)$/i;
-  const internal = /^(?:AGENTS|ARCHITECTURE|DESIGN|PRODUCT)\.md$|^docs\/(?:DEVELOPMENT-HISTORY|PRO-UI-AUDIT|PRO-ONBOARDING|MEDIA)\.md$/;
+  const internal = /^(?:AGENTS|ARCHITECTURE|DESIGN|PRODUCT)\.md$|^docs\/(?:DEVELOPMENT-HISTORY|PRO-UI-AUDIT|PRO-ONBOARDING|MEDIA)\.md$/i;
   const unsafe = files.filter(file => privateDirectory.test(file) || privateSuffix.test(file) || internal.test(file)
     || /(^|\/)\.env(?:\.|$)/.test(file) && !/(^|\/)\.env\.example$/.test(file));
   if (unsafe.length) throw new Error(`Private/generated publication candidates:\n${unsafe.join('\n')}`);
@@ -32,8 +47,8 @@ export async function checkPublication() {
   validateReleaseVersions({ package: pkg.version, lock: lock.version, lockedRoot: lock.packages[''].version, application: APP_VERSION });
   if (pkg.license !== 'GPL-3.0-only' || lock.packages[''].license !== pkg.license) throw new Error('Project SPDX declarations differ.');
   const hash = value => createHash('sha256').update(value).digest('hex');
-  if (hash(await readFile('LICENSE')) !== hash(await readFile('node_modules/@raydium-io/raydium-sdk-v2/LICENSE'))) throw new Error('GPLv3 text differs from the verified unmodified upstream copy.');
-  const required = ['COPYRIGHT', 'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'docs/ARCHITECTURE.md', 'docs/RELEASING.md', 'licenses/preferred-sources.json', '.github/CODEOWNERS'];
+  if (hash((await readProjectNotices()).LICENSE) !== hash(await readFile('node_modules/@raydium-io/raydium-sdk-v2/LICENSE'))) throw new Error('GPLv3 text differs from the verified unmodified upstream copy.');
+  const required = ['Docs/PROJECT.md', 'Docs/licenses/NOTICES.md', 'Docs/licenses/preferred-sources.json', '.github/CODEOWNERS'];
   for (const file of required) await readFile(file);
   for (const file of ['.github/workflows/ci.yml', '.github/workflows/security.yml', '.github/workflows/release-build.yml']) {
     const text = await readFile(file, 'utf8');

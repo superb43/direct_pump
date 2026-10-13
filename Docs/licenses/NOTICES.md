@@ -6,8 +6,8 @@ This inventory does not replace review of distribution scope, Corresponding Sour
 
 Do not redistribute node_modules wholesale. The locked `chain@0.4.2` package has no reviewed license grant and is not in the application import graph; adding it to a bundle blocks this check.
 
-Vendored protocol schemas retain their provenance in [src/vendor/NOTICE.md](src/vendor/NOTICE.md).
-Inter and Geist fonts retain SIL OFL-1.1 notices in public/fonts; Lucide retains public/lucide-LICENSE.txt.
+Vendored protocol schema provenance is retained in the project guide in the matching source package. Binary archives include those notices in vendor-notices/NOTICE.md.
+Inter and Geist fonts retain SIL OFL-1.1 terms and Lucide its original license. Full asset notice texts appear below; their originals accompany the matching source package.
 The Solana mark is third-party branding; its presence identifies the network and does not claim endorsement.
 
 | Package | License declaration | Conservative distribution coverage |
@@ -4336,7 +4336,7 @@ Source: https://registry.npmjs.org/wxt/0.21.4
 }
 ~~~
 
-### public/fonts/INTER-LICENSE.txt
+### Docs/licenses/assets/INTER-LICENSE.txt
 
 ~~~text
 Copyright (c) 2016 The Inter Project Authors (https://github.com/rsms/inter)
@@ -4433,7 +4433,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ~~~
 
-### public/fonts/GEIST-LICENSE.txt
+### Docs/licenses/assets/GEIST-LICENSE.txt
 
 ~~~text
 Copyright 2024 The Geist Project Authors (https://github.com/vercel/geist-font)
@@ -4531,7 +4531,7 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ~~~
 
-### public/lucide-LICENSE.txt
+### Docs/licenses/assets/lucide-LICENSE.txt
 
 ~~~text
 ISC License

@@ -1,4 +1,4 @@
-// Selected Lucide paths; license: public/lucide-LICENSE.txt.
+// Selected Lucide paths; license: Docs/licenses/assets/lucide-LICENSE.txt.
 import solanaMark from './assets/solana.svg';
 const paths = {
   check: '<path d="m5 12 4 4L19 6"/>',

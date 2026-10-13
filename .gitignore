@@ -29,10 +29,10 @@ output/playwright/
 /.omx/
 
 # Internal records
-/docs/DEVELOPMENT-HISTORY.md
-/docs/PRO-UI-AUDIT.md
-/docs/PRO-ONBOARDING.md
-/docs/MEDIA.md
+/Docs/DEVELOPMENT-HISTORY.md
+/Docs/PRO-UI-AUDIT.md
+/Docs/PRO-ONBOARDING.md
+/Docs/MEDIA.md
 
 # Historical UI and design experiments
 /preview/before-0.7.5/

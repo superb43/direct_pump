@@ -4,13 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      development-tools:
-        dependency-type: development
-        update-types: [minor, patch]
+    # Routine version migrations are reviewed manually; security updates stay on.
+    open-pull-requests-limit: 0
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0

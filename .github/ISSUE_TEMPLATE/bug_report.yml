@@ -4,7 +4,7 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: 'For signing, authorization, wallet or credential vulnerabilities, use SECURITY.md and private reporting. Never attach private keys, tokens, pairing codes or wallet databases.'
+      value: 'For signing, authorization, wallet or credential vulnerabilities, use Docs/PROJECT.md#security and private reporting. Never attach private keys, tokens, pairing codes or wallet databases.'
   - type: input
     id: version
     attributes:

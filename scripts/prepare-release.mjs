@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir, mkdtemp, copyFile, readdir, lstat, rm } fro
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { resolve, join, dirname, relative } from 'node:path';
-import { checkPublication } from './check-publication.mjs';
+import { checkPublication, readProjectNotices } from './check-publication.mjs';
 import { documents } from './third-party-notices.mjs';
 
 const preview = process.argv.includes('--preview');
@@ -20,7 +20,7 @@ if (!preview) {
 const files = await checkPublication();
 const sourceHashes = new Map(await Promise.all(files.map(async file => [file, createHash('sha256').update(await readFile(file)).digest('hex')])));
 const thirdParty = await documents();
-if (await readFile('licenses/dependencies.json', 'utf8') !== thirdParty.json || await readFile('THIRD_PARTY_NOTICES.md', 'utf8') !== thirdParty.markdown)
+if (await readFile('Docs/licenses/dependencies.json', 'utf8') !== thirdParty.json || await readFile('Docs/licenses/NOTICES.md', 'utf8') !== thirdParty.markdown)
   throw new Error('Review and regenerate the third-party inventory before packaging.');
 execFileSync('npm', ['run', 'verify'], { stdio: 'inherit' });
 if (execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim() !== commit) throw new Error('Source commit changed during verification.');
@@ -33,7 +33,7 @@ const root = resolve('.'), output = resolve('output/releases');
 await mkdir(output, { recursive: true });
 const stage = await mkdtemp(join(tmpdir(), 'direct-pump-release-'));
 const prefix = `direct-pump-${pkg.version}${preview ? '-preview' : ''}`;
-const notes = ['LICENSE', 'COPYRIGHT', 'THIRD_PARTY_NOTICES.md'];
+const notes = await readProjectNotices();
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 
 async function copyTree(source, destination) {
@@ -52,9 +52,9 @@ try {
   await copyTree('.output/chrome-mv3', extension);
   await mkdir(server); await copyFile('server-dist/cli.mjs', join(server, 'cli.mjs'));
   await copyFile('server-dist/cli.mjs.map', join(server, 'cli.mjs.map'));
-  for (const folder of [extension, server]) for (const file of notes) await copyFile(file, join(folder, file));
+  for (const folder of [extension, server]) for (const name of ['LICENSE', 'COPYRIGHT', 'THIRD_PARTY_NOTICES.md']) await writeFile(join(folder, name), notes[name]);
   await mkdir(join(extension, 'vendor-notices')); await mkdir(join(server, 'vendor-notices'));
-  for (const folder of [extension, server]) await copyFile('src/vendor/NOTICE.md', join(folder, 'vendor-notices', 'NOTICE.md'));
+  for (const folder of [extension, server]) await writeFile(join(folder, 'vendor-notices', 'NOTICE.md'), notes.VENDOR);
 
   await mkdir(source);
   for (const file of files) {
@@ -67,7 +67,7 @@ try {
   // npm ci + the lockfile remains the documented reproducible build path.
   const included = thirdParty.packages.filter(row => row.bundled);
   for (const row of included) await copyTree(row.lockPath, join(source, 'dependency-sources', row.lockPath));
-  const preferred = JSON.parse(await readFile('licenses/preferred-sources.json', 'utf8'));
+  const preferred = JSON.parse(await readFile('Docs/licenses/preferred-sources.json', 'utf8'));
   const preferredFolder = join(source, 'preferred-upstream-sources'); await mkdir(preferredFolder);
   for (const row of included.filter(row => /GPL-/.test(row.license))) {
     const record = preferred.find(record => record.name === row.name && record.version === row.version && record.verified === true);
@@ -83,7 +83,7 @@ try {
     + 'These directories retain the original installed package source, manifests and notices for the conservative application import graph.\n'
     + 'Generated native binaries/build directories and nested node_modules are excluded; their source and build instructions remain in their packages.\n'
     + 'Use Node.js 24 LTS, npm ci, and npm run verify at the project root. The lockfile pins upstream package integrity.\n'
-    + 'Pinned full GPL/LGPL upstream repositories (including build files) accompany this package under preferred-upstream-sources; hashes/provenance are in licenses/preferred-sources.json.\n'
+    + 'Pinned full GPL/LGPL upstream repositories (including build files) accompany this package under preferred-upstream-sources; hashes/provenance are in Docs/licenses/preferred-sources.json.\n'
     + 'Review preferred-source completeness and publisher-declaration-only notices before publication.\n');
   const metadata = { version: pkg.version, commit, preview, dirty, license: pkg.license, node: process.version,
     packageLockSha256: sha256(await readFile('package-lock.json')), includedDependencyPackages: included.length,

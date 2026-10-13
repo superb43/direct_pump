@@ -6,13 +6,13 @@
 
 <p align="center"><strong>Discover tokens where you already trade. Execute without leaving the page.</strong></p>
 <p align="center">A Chrome side panel for Solana token pages on GMGN, AXIOM, and FOMO Family.</p>
-<p align="center"><a href="#quick-start">Install</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="docs/HOW-TO-SET-PRO.md">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
+<p align="center"><a href="#quick-start">Install</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="Docs/PROJECT.md#pro-setup">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
 
 ### Basic mode · Trading panel
 
-<img src="docs/media/basic-trade.png" width="390" alt="Basic mode: SOL buy presets, percentage sells, holdings value, and estimated net PnL">
+<img src="Docs/media/basic-trade.png" width="390" alt="Basic mode: SOL buy presets, percentage sells, holdings value, and estimated net PnL">
 
-> Screenshots show the actual interface with synthetic sample data. Balances, returns, and receipts are illustrative, not real trading results. This README shows Basic mode only; [Pro screenshots and setup](docs/HOW-TO-SET-PRO.md) are in the separate guide.
+> Screenshots show the actual interface with synthetic sample data. Balances, returns, and receipts are illustrative, not real trading results. This README shows Basic mode only; [Pro screenshots and setup](Docs/PROJECT.md#pro-setup) are in the project guide.
 
 ## Why I built it
 
@@ -54,19 +54,19 @@ Basic and Pro are two execution modes in the same extension. Pro currently uses 
 | Setup | Extension, Phantom, and RPC | Extension plus Node server, HTTPS, pairing, and a server wallet |
 | Operating costs | Chain/protocol costs and your RPC/API plans | Applicable Basic costs plus server, domain, and other infrastructure costs |
 
-Use **Basic** for trades you approve yourself, or **Pro** for reviewed conditional orders and exit strategies. Pro does not import your Phantom key. [Set up Pro and explore its screens →](docs/HOW-TO-SET-PRO.md)
+Use **Basic** for trades you approve yourself, or **Pro** for reviewed conditional orders and exit strategies. Pro does not import your Phantom key. [Set up Pro and explore its screens →](Docs/PROJECT.md#pro-setup)
 
 ## Basic mode screenshots
 
 ### Execution receipts and fees
 
-<img src="docs/media/basic-receipts.png" width="1200" alt="Basic mode receipts: twelve sample trades, six days of fees, holdings, and itemized execution costs">
+<img src="Docs/media/basic-receipts.png" width="1200" alt="Basic mode receipts: twelve sample trades, six days of fees, holdings, and itemized execution costs">
 
 ### Trading settings
 
 Configure buy/sell presets, slippage, priority fees, RPC, and optional spend limits. API keys are entered in an extension-owned settings page.
 
-<img src="docs/media/basic-settings.png" width="1000" alt="Basic mode settings: execution preferences, quick amounts, connection, and optional spend limits">
+<img src="Docs/media/basic-settings.png" width="1000" alt="Basic mode settings: execution preferences, quick amounts, connection, and optional spend limits">
 
 ## Quick start
 
@@ -100,13 +100,13 @@ Supported direct SOL routes do not require a Jupiter key. Non-SOL pairs and rout
 
 You can browse Pro without a server. Real execution requires pairing your personal server, unlocking the signer on its private console, and explicitly enabling Pro.
 
-[Pro setup guide and screenshots →](docs/HOW-TO-SET-PRO.md)
+[Pro setup guide and screenshots →](Docs/PROJECT.md#pro-setup)
 
 ## Execution and funds
 
 Basic retains manual Phantom approval for each trade. Pro executes registered orders through a separate server wallet. Closing the browser does not stop Pro orders. Pro OFF takes effect after the server acknowledges pausing unsubmitted orders; signed or uncertain attempts remain tracked.
 
-Slippage limits and order conditions do not guarantee a fill or execution price. Uncertain orders retain their reservations. Follow the [recovery procedure](docs/PRO.md#orders-and-recovery) rather than placing a compensating order or deleting records.
+Slippage limits and order conditions do not guarantee a fill or execution price. Uncertain orders retain their reservations. Follow the [recovery procedure](Docs/PROJECT.md#orders-and-recovery) rather than placing a compensating order or deleting records.
 
 ## Development and documentation
 
@@ -122,7 +122,7 @@ npm run verify      # Run the checks and builds above
 
 Run `npm run test:sites` separately for the site DOM gate. It requires a running Brave instance and Apple Events JavaScript access. Network tests are opt-in; offline verification performs no real signing, trading, or deployment.
 
-- [Pro setup](docs/HOW-TO-SET-PRO.md) · [Operations and recovery](docs/PRO.md)
+- [Pro setup](Docs/PROJECT.md#pro-setup) · [Operations and recovery](Docs/PROJECT.md#pro-operations)
 
 Share feedback and your experience on [Telegram](https://t.me/+bWgImSypdyBiODNl).
 
@@ -131,13 +131,12 @@ Share feedback and your experience on [Telegram](https://t.me/+bWgImSypdyBiODNl)
 Original Direct Pump application code is licensed under **GPL-3.0-only**.
 Commercial use, modification and redistribution are permitted under the GPL;
 covered distributions must provide the applicable Corresponding Source and
-retain the required notices. See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT) and
-[third-party notices](THIRD_PARTY_NOTICES.md). Third-party code and assets retain
+retain the required notices. See the [project license and full GPL text](Docs/PROJECT.md#copyright-and-license)
+and [third-party notices](Docs/licenses/NOTICES.md). Third-party code and assets retain
 their original licenses.
 
-- [Contributing](CONTRIBUTING.md) · [Public architecture](docs/ARCHITECTURE.md)
-- [Security policy, known dependency findings and private reporting](SECURITY.md) · [Code of conduct](CODE_OF_CONDUCT.md)
-- [Release and support policy](docs/RELEASING.md)
+[Project guide](Docs/PROJECT.md): architecture, Pro setup, contribution rules,
+security, community conduct and release procedures.
 
 Report ordinary bugs through GitHub Issues. Report wallet, signing, authorization
 or credential vulnerabilities privately using the security policy. Never include

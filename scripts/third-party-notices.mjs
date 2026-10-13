@@ -48,7 +48,7 @@ export async function applicationInputs() {
 
 export async function inventory() {
   const lock = await readJson('package-lock.json');
-  const upstream = await readJson('licenses/upstream-evidence.json');
+  const upstream = await readJson('Docs/licenses/upstream-evidence.json');
   const { inputs, embedded } = await applicationInputs();
   const packages = [];
   for (const [path, locked] of Object.entries(lock.packages)) {
@@ -117,15 +117,15 @@ export async function documents() {
     + 'Original Direct Pump application code uses GPL-3.0-only; the components below retain their own terms.\n'
     + 'This inventory does not replace review of distribution scope, Corresponding Source or trademark rights.\n\n'
     + 'Do not redistribute node_modules wholesale. The locked `chain@0.4.2` package has no reviewed license grant and is not in the application import graph; adding it to a bundle blocks this check.\n\n'
-    + 'Vendored protocol schemas retain their provenance in [src/vendor/NOTICE.md](src/vendor/NOTICE.md).\n'
-    + 'Inter and Geist fonts retain SIL OFL-1.1 notices in public/fonts; Lucide retains public/lucide-LICENSE.txt.\n'
+    + 'Vendored protocol schema provenance is retained in the project guide in the matching source package. Binary archives include those notices in vendor-notices/NOTICE.md.\n'
+    + 'Inter and Geist fonts retain SIL OFL-1.1 terms and Lucide its original license. Full asset notice texts appear below; their originals accompany the matching source package.\n'
     + 'The Solana mark is third-party branding; its presence identifies the network and does not claim endorsement.\n\n'
     + '| Package | License declaration | Conservative distribution coverage |\n| --- | --- | --- |\n';
   for (const row of packages) markdown += `| ${row.name}@${row.version} | ${String(row.license).replaceAll('|', '\\|')} | ${row.bundled ? 'Included' : 'Not included'} |\n`;
   markdown += '\n## Included license and notice texts\n';
   for (const section of sections.values()) markdown += `\n### ${[...section.packages].sort().join(', ')}\n\n`
     + [...section.sources].sort().map(url => `Source: ${url}\n\n`).join('') + `~~~text\n${section.text.trimEnd()}\n~~~\n`;
-  for (const file of ['public/fonts/INTER-LICENSE.txt', 'public/fonts/GEIST-LICENSE.txt', 'public/lucide-LICENSE.txt']) {
+  for (const file of ['Docs/licenses/assets/INTER-LICENSE.txt', 'Docs/licenses/assets/GEIST-LICENSE.txt', 'Docs/licenses/assets/lucide-LICENSE.txt']) {
     markdown += `\n### ${file}\n\n~~~text\n${(await readFile(file, 'utf8')).trimEnd()}\n~~~\n`;
   }
   return { json, markdown, packages };
@@ -134,10 +134,10 @@ export async function documents() {
 if (process.argv[1]?.endsWith('/third-party-notices.mjs') || process.argv[1] === 'scripts/third-party-notices.mjs') {
   const result = await documents();
   if (process.argv.includes('--write')) {
-    await writeFile('licenses/dependencies.json', result.json);
-    await writeFile('THIRD_PARTY_NOTICES.md', result.markdown);
+    await writeFile('Docs/licenses/dependencies.json', result.json);
+    await writeFile('Docs/licenses/NOTICES.md', result.markdown);
   } else {
-    if (await readFile('licenses/dependencies.json', 'utf8') !== result.json || await readFile('THIRD_PARTY_NOTICES.md', 'utf8') !== result.markdown)
+    if (await readFile('Docs/licenses/dependencies.json', 'utf8') !== result.json || await readFile('Docs/licenses/NOTICES.md', 'utf8') !== result.markdown)
       throw new Error('Third-party inventory is stale; regenerate and review it.');
   }
   console.log(`Third-party inventory: ${result.packages.length} locked/runtime packages; ${result.packages.filter(row => row.bundled).length} in conservative distribution coverage.`);

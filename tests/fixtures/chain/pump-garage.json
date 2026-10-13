@@ -1,0 +1,9 @@
+{
+  "mint": "CjzVs4bTg1xzGqADNj5H5Au8dM4jbrfMM1nTbrn4pump",
+  "curve": "FizjayAXCL7JDw2ePjkxK4DNbKTSDjP6hGXd3QD3LSkF",
+  "owner": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+  "mintOwner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+  "slot": 455978526,
+  "provenance": "Historical public mainnet getAccountInfo snapshot for the reported Axiom URL. Curve data and mint owner are captured; tests synthesize an initialized MintLayout, not original mint bytes.",
+  "data": "F7f4N2DYrGBuzk0izIMBAAcv1ZMRAAAAbjY71jqFAAAHg7GXCgAAAACAxqR+jQMAAOrHLIsin1N4bAkMnmhAj/NXEHegyfHKwUvk20ZFhyrAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAd9xQGAAAAAI//bXUAAAAAAACsI/wGAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+}

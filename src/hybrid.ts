@@ -11,23 +11,24 @@ import { buildRoutedTrade } from './router';
 
 export { resolveExecution } from './execution';
 
-export async function buildHybridTrade(rpc: Connection, target: PageTarget, wallet: PublicKey, intent: TradeIntent, settings: Settings) {
+export async function buildHybridTrade(rpc: Connection, target: PageTarget, wallet: PublicKey, intent: TradeIntent, settings: Settings, options: { exactInput?: bigint; minimumOutput?: bigint; quoteOnly?: boolean } = {}) {
   if (intent.side === 'BUY' && 'paymentMint' in intent && intent.paymentMint !== NATIVE_MINT.toBase58()) throw new Error('Buy amounts now use SOL. Reload the token page before trading.');
   const solInput = intent.side === 'BUY' ? parseSol('sol' in intent ? intent.sol : intent.amount) : undefined;
   if (solInput && settings.spendLimitsEnabled && solInput > parseSol(settings.maxBuySol)) throw new Error(`Maximum buy is ${settings.maxBuySol} SOL.`);
   const normalized: TradeIntent = intent.side === 'BUY' ? { side: 'BUY', sol: 'sol' in intent ? intent.sol : intent.amount } : intent;
   const route = await resolveExecution(rpc, target);
-  if (route.venue === 'PUMP_CURVE' || route.venue === 'PUMP_SWAP') return buildPumpTrade(rpc, route, wallet, normalized, settings);
+  if (route.venue === 'PUMP_CURVE' || route.venue === 'PUMP_SWAP') return Object.keys(options).length?buildPumpTrade(rpc, route, wallet, normalized, settings, options):buildPumpTrade(rpc, route, wallet, normalized, settings);
   const baseInfo = await rpc.getAccountInfo(route.mint);
   if (!baseInfo) throw new Error('Token mint was not found.');
   assertTokenProgram(baseInfo.owner);
   // Parse sells only. SOL buys never require or spend a quote-asset balance.
-  let input = solInput!;
+  let input = options.exactInput ?? solInput!;
   if (intent.side === 'SELL') {
     const baseAta = getAssociatedTokenAddressSync(route.mint, wallet, false, baseInfo.owner);
     const account = await rpc.getAccountInfo(baseAta);
-    input = sellAmount(account ? unpackAccount(baseAta, account, baseInfo.owner).amount : 0n, intent.percent);
+    input = options.exactInput ?? sellAmount(account ? unpackAccount(baseAta, account, baseInfo.owner).amount : 0n, intent.percent);
   }
+  if (options.quoteOnly) throw new Error('Pro quotes for this venue are unavailable.');
   if (route.venue === 'JUPITER') return buildRoutedTrade(rpc, route, wallet, intent.side, input, settings);
   const quoteInfo = await rpc.getAccountInfo(NATIVE_MINT);
   if (!quoteInfo) throw new Error('SOL mint was not found.');

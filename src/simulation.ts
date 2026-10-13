@@ -12,6 +12,7 @@ export class SimulationFailure extends Error {
 export function simulationFailure(
   error: TransactionError, logs: string[] | null,
   transaction?: VersionedTransaction,
+  stage: TradeDiagnostic['stage'] = 'SIMULATION',
 ): SimulationFailure {
   const lines = logs ?? [];
   const raw = typeof error === 'string' ? error : JSON.stringify(error);
@@ -38,7 +39,7 @@ export function simulationFailure(
   else if (errorName === 'BondingCurveComplete') message = 'The token graduated during preparation (BondingCurveComplete). Submit a new request on the updated route.';
   else if (errorName) message = `Protocol error: ${errorName}${customCode !== undefined ? ` (${customCode})` : ''}${explanation ? ` — ${explanation}` : ''}`;
   else if (raw === 'BlockhashNotFound') message = 'The transaction blockhash is not valid on this RPC (BlockhashNotFound).';
-  else message = `Transaction simulation failed: ${raw}`;
+  else message = `${stage === 'CHAIN' ? 'On-chain transaction' : 'Transaction simulation'} failed: ${raw}`;
   let instruction: string | undefined;
   if (transaction && index !== undefined) {
     const ix = transaction.message.compiledInstructions[index];
@@ -50,7 +51,7 @@ export function simulationFailure(
     }
   }
   return new SimulationFailure(message, {
-    stage: 'SIMULATION', code: customCode ?? (typeof reason === 'string' ? reason : raw),
+    stage, code: customCode ?? (typeof reason === 'string' ? reason : raw),
     instructionIndex: index, program: failedProgram, instruction, error: raw, logs: lines,
   });
 }

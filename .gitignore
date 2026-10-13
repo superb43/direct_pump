@@ -1,15 +1,14 @@
 node_modules/
+server-dist/
+pro-state/
+*.sqlite-wal
+*.sqlite-shm
+*.sock
 .wxt/
 .output/
 output/playwright/
 .playwright-cli/
 *.tsbuildinfo
-!package.json
-!package-lock.json
-!tsconfig.json
-!public/icon/*.png
-!assets/icon/*.png
-!public/lucide-LICENSE.txt
 
 # Local credentials, logs and operating-system files
 .env
@@ -17,3 +16,48 @@ output/playwright/
 !.env.example
 *.log
 .DS_Store
+
+# Local instructions and agent tooling
+/AGENTS.md
+/DESIGN.md
+/ARCHITECTURE.md
+/PRODUCT.md
+/.agents/
+/.claude/
+/.codex/
+/.impeccable/
+/.omx/
+
+# Internal records
+/docs/DEVELOPMENT-HISTORY.md
+/docs/PRO-UI-AUDIT.md
+/docs/PRO-ONBOARDING.md
+/docs/MEDIA.md
+
+# Historical UI and design experiments
+/preview/before-0.7.5/
+/preview/baseline-0.7.3.css
+/preview/raycast.*
+/preview/redesign*
+/preview/subslot-compare.*
+/preview/titanium*
+/preview/readability.*
+/preview/ux.html
+/preview/fonts/
+/scripts/verify-raycast.mjs
+/scripts/capture-readme.mjs
+
+# Private runtime state, keys and encrypted backups
+/.private/
+*.enc
+*.pem
+*.key
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Locally prepared release artifacts are not source commits.
+/output/releases/

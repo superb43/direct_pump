@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a focused change before implementing it.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: A concrete scenario, affected mode/site, and why current behavior is insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and tradeoffs
+      description: Include financial, privacy, provider, dependency or schema implications.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Acceptance and verification
+      description: Observable success criteria and safe tests without funded trading.

@@ -9,6 +9,9 @@ export function validateSettings(value: unknown): Settings {
   if (rpc.protocol !== 'https:' || rpc.username || rpc.password || rpc.hash) {
     throw new Error('RPC must be an HTTPS URL without embedded username, password or fragment.');
   }
+  if(settings.priceWsUrl!==undefined&&typeof settings.priceWsUrl!=='string')throw new Error('Price WebSocket must be a URL string.');
+  const priceWsUrl=settings.priceWsUrl?.trim()??'';
+  if(priceWsUrl){const ws=new URL(priceWsUrl);if(ws.protocol!=='wss:'||ws.username||ws.password||ws.hash)throw new Error('Price WebSocket must be a WSS URL without embedded username, password or fragment.');}
   if (!Number.isInteger(settings.slippageBps) || settings.slippageBps < 1 || settings.slippageBps > 2_000) {
     throw new Error('Slippage must be between 0.01% and 20%.');
   }
@@ -28,5 +31,5 @@ export function validateSettings(value: unknown): Settings {
   if (!Array.isArray(sellPresets) || !sellPresets.length || sellPresets.length > 8 || sellPresets.some(percent => !Number.isInteger(percent) || percent < 1 || percent > 100)) throw new Error('Sell presets must contain 1–8 whole percentages from 1 to 100.');
   if (new Set(sellPresets).size !== sellPresets.length) throw new Error('Sell presets must be unique.');
   if (typeof jupiterApiKey !== 'string' || jupiterApiKey.length > 256 || /\s/.test(jupiterApiKey)) throw new Error('The Jupiter API key is invalid.');
-  return { spendLimitsEnabled, rpcUrl: rpc.href, maxBuySol: settings.maxBuySol, maxQuoteBuyAmount, slippageBps: settings.slippageBps, priorityFeeLamports: settings.priorityFeeLamports, buyPresets: [...buyPresets], sellPresets: [...sellPresets], jupiterApiKey };
+  return { spendLimitsEnabled, rpcUrl: rpc.href, priceWsUrl, maxBuySol: settings.maxBuySol, maxQuoteBuyAmount, slippageBps: settings.slippageBps, priorityFeeLamports: settings.priorityFeeLamports, buyPresets: [...buyPresets], sellPresets: [...sellPresets], jupiterApiKey };
 }

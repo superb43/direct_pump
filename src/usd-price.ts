@@ -1,20 +1,74 @@
 import type { UsdSnapshot } from './model';
 import { priceMicros } from './savings';
+import {logEvent} from './diagnostics';
+
 let cached: UsdSnapshot | undefined;
+let pending: Promise<UsdSnapshot | undefined> | undefined;
+let failures = 0;
+let retryAt = 0;
+
+/** A successful spot observation expires without extending its original timestamp. */
+export function currentSolUsd(): UsdSnapshot | undefined {
+  return cached && Date.now() - cached.capturedAt < 30_000 ? cached : undefined;
+}
+
+export function solUsdRetryAt(): number { return retryAt; }
+
 export async function solUsdSnapshot(blockTime: number): Promise<UsdSnapshot | undefined> {
-  const now = Date.now();
   // A current quote cannot reconstruct an old trade's USD value.
-  if (Math.abs(now / 1000 - blockTime) > 300) return historicalSolUsd(blockTime);
-  if (cached && now - cached.capturedAt < 30_000) return cached;
+  if (Math.abs(Date.now() / 1000 - blockTime) > 300) return historicalSolUsd(blockTime);
+  const fresh = currentSolUsd();
+  if (fresh) return fresh;
+  if (pending) return pending;
+  if (Date.now() < retryAt) return undefined;
+  pending = fetchSpot().finally(() => { pending = undefined; });
+  return pending;
+}
+
+function retryAfter(response: Response): number {
+  if (response.status !== 429) return 0;
+  const header = response.headers.get('retry-after');
+  if (!header) return 0;
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) return Date.now() + seconds * 1000;
+  const date = Date.parse(header);
+  return Number.isFinite(date) ? date : 0;
+}
+
+async function fetchSpot(): Promise<UsdSnapshot | undefined> {
+  let providerRetryAt = 0;
+  const started=Date.now();let status:number|undefined;
   try {
-    const response = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot', { cache:'no-store', signal:AbortSignal.timeout(8_000) });
-    if (!response.ok) return undefined;
+    const response = await fetch('https://api.coinbase.com/v2/prices/SOL-USD/spot', {
+      cache: 'no-store', signal: AbortSignal.timeout(5_000),
+    });
+    status=response.status;
+    providerRetryAt = retryAfter(response);
+    if (!response.ok) throw new Error('SOL/USD response unavailable.');
     const date = response.headers.get('date');
-    if (date && Math.abs(now - Date.parse(date)) > 120_000) return undefined;
     const data = (await response.json()) as { data?: { base?: string; currency?: string; amount?: string } };
-    if (data.data?.base !== 'SOL' || data.data.currency !== 'USD' || !data.data.amount) return undefined;
-    return cached = { priceMicros: priceMicros(data.data.amount).toString(), capturedAt:now, source:'Coinbase spot' };
-  } catch { return undefined; }
+    const now = Date.now();
+    if (date && (!Number.isFinite(Date.parse(date)) || Math.abs(now - Date.parse(date)) > 120_000)) {
+      throw new Error('SOL/USD response date invalid.');
+    }
+    if (data.data?.base !== 'SOL' || data.data.currency !== 'USD' || !data.data.amount) {
+      throw new Error('SOL/USD response invalid.');
+    }
+    const snapshot: UsdSnapshot = {
+      priceMicros: priceMicros(data.data.amount).toString(), capturedAt: now, source: 'Coinbase spot',
+    };
+    cached = snapshot;
+    failures = 0;
+    retryAt = 0;
+    logEvent({level:'debug',component:'prices',type:'usd.completed',duration:Date.now()-started,details:{source:'Coinbase spot'}});
+    return snapshot;
+  } catch (error) {
+    const delay = Math.min(15_000, 1000 * 2 ** Math.min(failures, 4));
+    failures++;
+    retryAt = Math.max(providerRetryAt, Date.now() + Math.round(delay * (0.8 + Math.random() * 0.4)));
+    logEvent({level:'warn',component:'prices',type:'usd.failed',duration:Date.now()-started,code:status?.toString(),details:{error,status,retry:retryAt}});
+    return undefined;
+  }
 }
 
 const historical=new Map<number,UsdSnapshot>();

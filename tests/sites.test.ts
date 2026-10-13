@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectPage, sameTarget, targetKey, pageKey, SITE_MATCHES, SITE_LABELS, SITE_CATALOG } from '../src/sites/catalog';
+import { detectPage, sameTarget, targetKey, pageKey, SITE_MATCHES, SITE_LABELS, SITE_CATALOG, isUnsupportedChainTokenPage } from '../src/sites/catalog';
 import { readPageHints } from '../src/adapters';
 import { decimalText } from '../src/market';
 import { SITE_READERS } from '../src/sites/reader';
@@ -16,6 +16,27 @@ function gmgnDocument(labels: unknown[], headerMint = mint): Document {
 }
 
 describe('three-site contracts', () => {
+  it.each([
+    'https://fomo.family/tokens/robinhood/0x98096d17e191b3da1d5f99a6d7b3584351b11e18',
+    'https://gmgn.ai/eth/token/0x98096d17e191b3da1d5f99a6d7b3584351b11e18',
+    ...SITE_CONTEXTS.map(({target}) => `${target.pageUrl.split('?')[0]}?chain=eth`),
+  ])('classifies unsupported token chains without granting trading: %s', url => {
+    expect(isUnsupportedChainTokenPage(url)).toBe(true);
+    expect(detectPage(url)).toBeNull();
+  });
+  it.each([
+    ...SITE_CONTEXTS.map(({target}) => target.pageUrl),
+    'https://fomo.family', 'https://fomo.family/tokens/robinhood',
+    'https://fomo.family/tokens/solana/invalid',
+    'https://example.com/tokens/robinhood/token',
+    'https://fomo.family.evil/tokens/robinhood/token',
+    'http://fomo.family/tokens/robinhood/token',
+    'https://fomo.family:444/tokens/robinhood/token',
+    'https://user:pass@fomo.family/tokens/robinhood/token',
+    'not a URL',
+  ])('keeps supported, missing or untrusted routes out of the chain notice: %s', url => {
+    expect(isUnsupportedChainTokenPage(url)).toBe(false);
+  });
   it.each(SITE_CONTEXTS)('$site catalog is exhaustive and drives its URL, labels, permissions and market source', ({ site, target, source }) => {
     const definition = SITE_CATALOG[site];
     expect(Object.keys(SITE_CATALOG).sort()).toEqual(SITE_CONTEXTS.map(context => context.site).sort());

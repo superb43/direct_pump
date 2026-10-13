@@ -1,12 +1,13 @@
 import { Buffer } from 'buffer';
 import BN from 'bn.js';
-import { Connection, PublicKey, TransactionInstruction, SystemProgram, SystemInstruction, type AddressLookupTableAccount } from '@solana/web3.js';
+import { Connection, PublicKey, TransactionInstruction, SystemProgram, SystemInstruction, ComputeBudgetProgram, TransactionMessage, VersionedTransaction, type AddressLookupTableAccount } from '@solana/web3.js';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { jupiterProgram } from './jupiter-coder';
 import { jupiterIdl } from './vendor/jupiter-idl';
 import type { Settings } from './model';
-import { finalizeTrade, TransactionSizeError } from './transactions';
+import { finalizeTrade, assertTransactionSize, TransactionSizeError } from './transactions';
 import { readableCoder } from './coder';
+import { instructionManifest } from './manifest';
 
 type ApiInstruction = { programId: string; accounts: { pubkey: string; isSigner: boolean; isWritable: boolean }[]; data: string };
 export type BuildResponse = { inputMint: string; outputMint: string; inAmount: string; outAmount: string; otherAmountThreshold: string; swapMode: string; slippageBps: number; routePlan: { swapInfo: { ammKey: string; label: string; inputMint: string; outputMint: string } }[]; setupInstructions: ApiInstruction[]; swapInstruction: ApiInstruction; cleanupInstruction?: ApiInstruction | null; otherInstructions?: ApiInstruction[]; tipInstruction?: ApiInstruction | null; addressesByLookupTableAddress?: Record<string, string[]> | null; platformFee?: { feeBps?: number; amount?: string } | null };
@@ -58,10 +59,22 @@ export function validateRouterSwap(core: TransactionInstruction, wallet: PublicK
   if (core.keys.some(meta => meta.isSigner && !meta.pubkey.equals(wallet))) throw new Error('Router requires an additional signer.');
 }
 
-async function validateRouterSetup(rpc: Connection, instructions: TransactionInstruction[], wallet: PublicKey, input: PublicKey, output: PublicKey, budget: bigint, routeMints: PublicKey[]) {
+// RPC requests cannot be cancelled by web3.js; stop waiting and fence follow-up
+// reads when the read-only quote deadline expires.
+function quoteRead<T>(read: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  signal?.throwIfAborted();
+  if (!signal) return read();
+  return new Promise<T>((resolve, reject) => {
+    const aborted = () => reject(signal.reason);
+    signal.addEventListener('abort', aborted, { once: true });
+    read().then(resolve, reject).finally(() => signal.removeEventListener('abort', aborted));
+  });
+}
+
+async function validateRouterSetup(rpc: Connection, instructions: TransactionInstruction[], wallet: PublicKey, input: PublicKey, output: PublicKey, budget: bigint, routeMints: PublicKey[], signal?: AbortSignal) {
   const keys = [...new Map([input, output, ...routeMints].map(mint => [mint.toBase58(), mint])).values()];
   if (keys.length > 18) throw new Error('Router setup contains too many intermediate assets.');
-  const mints = await rpc.getMultipleAccountsInfo(keys);
+  const mints = await quoteRead(() => rpc.getMultipleAccountsInfo(keys), signal);
   const programs = new Map<string, PublicKey>();
   for (let index = 0; index < keys.length; index++) {
     const info = mints[index];
@@ -94,7 +107,8 @@ async function validateRouterSetup(rpc: Connection, instructions: TransactionIns
   return { inputProgram: programs.get(input.toBase58())!, outputProgram: programs.get(output.toBase58())! };
 }
 
-async function prepareBuild(rpc: Connection, build: BuildResponse, wallet: PublicKey, input: PublicKey, output: PublicKey, amount: bigint, slippage: number) {
+export async function prepareBuild(rpc: Connection, build: BuildResponse, wallet: PublicKey, input: PublicKey, output: PublicKey, amount: bigint, slippage: number, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   if (build.inputMint !== input.toBase58() || build.outputMint !== output.toBase58() || build.inAmount !== amount.toString() || build.swapMode !== 'ExactIn' || build.slippageBps !== slippage) throw new Error('Jupiter quote does not match the intended SOL trade.');
   if (build.tipInstruction || build.otherInstructions?.length || (build.platformFee?.feeBps ?? 0) !== 0 || BigInt(build.platformFee?.amount ?? '0') !== 0n) throw new Error('Router returned unexpected fees, tips or additional instructions.');
   if (!build.routePlan?.length || build.routePlan.length > 16) throw new Error('Jupiter did not return a supported route.');
@@ -104,11 +118,11 @@ async function prepareBuild(rpc: Connection, build: BuildResponse, wallet: Publi
   const core = decode(build.swapInstruction);
   const before = build.setupInstructions.map(decode), after = build.cleanupInstruction ? [decode(build.cleanupInstruction)] : [];
   if (output.equals(NATIVE_MINT) && !after.some(ix => ix.programId.equals(TOKEN_PROGRAM_ID) && ix.data.length === 1 && ix.data[0] === 9 && ix.keys[0]?.pubkey.equals(getAssociatedTokenAddressSync(NATIVE_MINT, wallet)))) throw new Error('Router must unwrap the sale proceeds after the swap.');
-  const programs = await validateRouterSetup(rpc, [...before, ...after], wallet, input, output, amount, routeMints);
+  const programs = await validateRouterSetup(rpc, [...before, ...after], wallet, input, output, amount, routeMints, signal);
   validateRouterSwap(core, wallet, input, output, amount, minimum, slippage, programs.inputProgram, programs.outputProgram, expected);
   const tables: AddressLookupTableAccount[] = [];
   for (const [address, expectedKeys] of Object.entries(build.addressesByLookupTableAddress ?? {})) {
-    const table = (await rpc.getAddressLookupTable(new PublicKey(address))).value;
+    const table = (await quoteRead(() => rpc.getAddressLookupTable(new PublicKey(address)), signal)).value;
     if (!table || expectedKeys.some((key, index) => table.state.addresses[index]?.toBase58() !== key)) throw new Error('Router lookup table does not match on-chain data.');
     tables.push(table);
   }
@@ -131,6 +145,41 @@ export async function buildRoutedTrade(rpc: Connection, route: { venue: 'JUPITER
     try {
       const finalized = await finalizeTrade(rpc, prepared.instructions, wallet, settings, prepared.tables);
       return { ...finalized, route, input: inputAmount, minimum: prepared.minimum, expected: prepared.expected, routeLabels: prepared.labels, maxAccounts };
+    } catch (error) {
+      if (!(error instanceof TransactionSizeError) || maxAccounts === 24) throw error;
+    }
+  }
+  throw new Error('No feasible atomic SOL route was found.');
+}
+
+/** Validated display estimate. Transaction feasibility is checked without signing,
+ * a live blockhash, or simulation; execution must still use buildRoutedTrade. */
+export async function quoteRoutedTrade(rpc: Connection, route: { venue: 'JUPITER'; mint: PublicKey; quoteMint: PublicKey; account: PublicKey }, wallet: PublicKey, side: 'BUY' | 'SELL', inputAmount: bigint, settings: Settings, signal?: AbortSignal) {
+  if (!settings.jupiterApiKey) throw new Error('Add a Jupiter API key in Settings for automatic SOL routing. Direct SOL pairs need no key.');
+  if (!route.quoteMint.equals(NATIVE_MINT)) throw new Error('Routed payment and receipt assets must be SOL.');
+  const input = side === 'BUY' ? NATIVE_MINT : route.mint;
+  const output = side === 'BUY' ? route.mint : NATIVE_MINT;
+  const deadline = AbortSignal.timeout(15_000);
+  const requestSignal = signal ? AbortSignal.any([signal, deadline]) : deadline;
+  for (const maxAccounts of [64, 48, 32, 24]) {
+    requestSignal.throwIfAborted();
+    const params = new URLSearchParams({ inputMint: input.toBase58(), outputMint: output.toBase58(), amount: inputAmount.toString(), taker: wallet.toBase58(), slippageBps: String(settings.slippageBps), platformFeeBps: '0', transactionVersion: '0', wrapAndUnwrapSol: 'true', maxAccounts: String(maxAccounts) });
+    const response = await fetch(`${JUPITER_BUILD_URL}?${params}`, { headers: { 'x-api-key': settings.jupiterApiKey }, signal: requestSignal });
+    if (!response.ok) {
+      const retry = response.headers.get('Retry-After');
+      const seconds = retry !== null && retry.trim() !== '' ? Number(retry) : NaN;
+      const retryAt = Number.isFinite(seconds) && seconds >= 0 ? Date.now() + seconds * 1000 : retry ? Date.parse(retry) : NaN;
+      throw Object.assign(new Error(`Jupiter API request failed (${response.status}). Check the API key, plan quota and available SOL routes.`), { status: response.status, retryAt: Number.isFinite(retryAt) ? retryAt : undefined });
+    }
+    const build = await quoteRead(() => response.json() as Promise<BuildResponse>, requestSignal);
+    const prepared = await prepareBuild(rpc, build, wallet, input, output, inputAmount, settings.slippageBps, requestSignal);
+    try {
+      // Values change instruction bytes, never their lengths. Match finalizeTrade's
+      // two compute-budget instructions so account-limit fallback stays identical.
+      const instructions = [ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }), ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 0 }), ...prepared.instructions.filter(ix => !ix.programId.equals(ComputeBudgetProgram.programId))];
+      const transaction = new VersionedTransaction(new TransactionMessage({ payerKey: wallet, recentBlockhash: PublicKey.default.toBase58(), instructions }).compileToV0Message(prepared.tables));
+      assertTransactionSize(transaction);
+      return { route, input: inputAmount, minimum: prepared.minimum, expected: prepared.expected, routeLabels: prepared.labels, maxAccounts, feeManifest: instructionManifest(transaction.message, { addressLookupTableAccounts: prepared.tables }) };
     } catch (error) {
       if (!(error instanceof TransactionSizeError) || maxAccounts === 24) throw error;
     }

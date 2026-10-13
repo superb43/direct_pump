@@ -1,0 +1,9 @@
+/* Document-level registration also serves the panel shadow tree. */
+@font-face {
+  font-family:'Inter'; src:url('/fonts/InterVariable.woff2') format('woff2');
+  font-style:normal; font-weight:100 900; font-display:swap;
+}
+@font-face {
+  font-family:'Geist Mono'; src:url('/fonts/GeistMonoVariable.woff2') format('woff2');
+  font-style:normal; font-weight:100 900; font-display:swap;
+}

@@ -12,11 +12,39 @@ import { userFacingError } from '../src/errors';
 import { GLOBAL_PDA, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { SimulationFailure } from '../src/simulation';
 import { applyPresentation } from '../src/presentation';
+import { createProWorker } from '../src/pro/worker';
+import { logEvent, exportDiagnostics, setDebugUntil, sanitizeDiagnostic } from '../src/diagnostics';
 
 export default defineBackground(() => {
+  const pro = createProWorker();
+  // Content scripts receive only public presets through the policy-controlled relay.
+  void browser.storage.local.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' });
+  void browser.storage.session?.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' });
+  browser.alarms?.onAlarm.addListener(alarm => { if (alarm.name === 'pro-notifications') void pro.pollNotifications(); });
+  const updateProAlarm=async()=>{
+    const value=(await browser.storage.local.get('proSettings')).proSettings as {enabled?:boolean;chromeNotifications?:boolean}|undefined;
+    if(value?.enabled&&value.chromeNotifications)await browser.alarms?.create('pro-notifications',{periodInMinutes:1});
+    else await browser.alarms?.clear('pro-notifications');
+  };
+  void updateProAlarm().catch(()=>{});
+  browser.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&changes.proSettings)void updateProAlarm().catch(()=>{});});
+  logEvent({level:'info',component:'worker',type:'worker.started'});
   const loadSettings = async () => validateSettings((await browser.storage.local.get('settings')).settings ?? DEFAULT_SETTINGS);
-  const queries = createQueries(loadSettings, frameFor);
+  const queries = createQueries(loadSettings, frameFor, wallet => {void browser.runtime.sendMessage({type:'PORTFOLIO_UPDATED',wallet}).catch(()=>{});});
   const orders = createOrders(loadSettings, frameFor, queries.invalidatePositions);
+  browser.runtime.onConnect?.addListener(port=>{
+    if(port.name==='pro-events'&&port.sender){void authorizeRequest({type:'PRO',action:'REQUEST',method:'GET',path:'/v1/events'},port.sender).then(()=>pro.watchEvents(port)).catch(()=>port.disconnect());return;}
+    if(port.name!=='portfolio-prices'||!port.sender){port.disconnect();return;}
+    let epoch=0,alive=true;
+    port.onMessage.addListener(message=>{
+      if(!alive||message?.type!=='WATCH'||typeof message.wallet!=='string'||message.mint!==undefined&&typeof message.mint!=='string'){port.disconnect();return;}
+      const sequence=++epoch;
+      void authorizeRequest({type:'PORTFOLIO_PRICES',wallet:message.wallet},port.sender!).then(()=>{
+        if(alive&&sequence===epoch)return queries.watchPrices(port,message.wallet,message.mint);
+      }).catch(()=>port.disconnect());
+    });
+    port.onDisconnect.addListener(()=>{alive=false;epoch++;void queries.watchPrices(port,undefined);});
+  });
   void loadSettings().then(()=>applyPresentation()).catch(error=>console.error(userFacingError(error)));
 
   async function frameFor(sender: Browser.runtime.MessageSender, target: WorkerRequest & { target: unknown }): Promise<SigningFrame> {
@@ -36,6 +64,12 @@ export default defineBackground(() => {
 
   async function handle(request: WorkerRequest, sender: Browser.runtime.MessageSender): Promise<WorkerResponse> {
     await authorizeRequest(request, sender);
+    if(request.type==='PRO')return pro.handle(request);
+    if(request.type==='DIAGNOSTICS'){
+      if(request.action==='EXPORT')return{ok:true,data:await exportDiagnostics()};
+      if(request.action==='DEBUG'){setDebugUntil(Date.now()+15*60_000);return{ok:true};}
+      throw new Error('Unsupported diagnostics action.');
+    }
     if (request.type === 'SETTINGS_GET') {
       return { ok: true, settings: await loadSettings() };
     }
@@ -61,13 +95,14 @@ export default defineBackground(() => {
       if (!await browser.permissions.contains({ origins: [origin] })) throw new Error('Access to the selected RPC endpoint was not granted.');
       await applyPresentation();
       await browser.storage.local.set({ settings });
+      await queries.refreshPriceSettings();
       return { ok: true, settings };
     }
     if(request.type==='OPEN_DASHBOARD'){
       await browser.tabs.create({url:browser.runtime.getURL('/dashboard.html')});return {ok:true};
     }
     if (request.type === 'MARKET_UPDATE') { await frameFor(sender, request); return {ok:true}; }
-    if (request.type === 'POSITION' || request.type === 'TOKEN_INFO' || request.type === 'HISTORY' || request.type === 'SAVINGS') return queries.read(request, sender, orders);
+    if (request.type === 'POSITION' || request.type === 'TOKEN_INFO' || request.type === 'HISTORY' || request.type === 'SAVINGS' || request.type === 'PORTFOLIO' || request.type === 'PORTFOLIO_PRICES') return queries.read(request, sender, orders);
     if (request.type === 'VERIFY_FEES') return {ok:true,receipt:await orders.verifyFees(request.wallet, request.signature)};
     if (request.type === 'STATUS') return {ok:true,receipt:await orders.status(request.wallet)};
     if (request.type === 'CONNECT') return { ok: true, wallet: await connectPhantom(await frameFor(sender, request), request.target) };
@@ -78,7 +113,14 @@ export default defineBackground(() => {
   }
 
   browser.runtime.onMessage.addListener((request: WorkerRequest, sender, respond) => {
-    handle(request, sender).then(respond).catch(error => respond({ ok: false, error: userFacingError(error), diagnostic: error instanceof SimulationFailure ? error.diagnostic : undefined }));
+    const requestId=crypto.randomUUID(),started=Date.now();
+    handle(request, sender).then(response=>{
+      if(request?.type==='TRADE')logEvent({level:response.ok?'info':'warn',component:'worker',type:'trade.request.completed',requestId,duration:Date.now()-started,signature:response.ok?response.receipt?.signature:undefined});
+      respond(response);
+    }).catch(error => {
+      logEvent({level:'error',component:'worker',type:'request.failed',requestId,duration:Date.now()-started,code:request?.type,details:{error:userFacingError(error)}});
+      respond({ ok: false, error: userFacingError(error), diagnostic: error instanceof SimulationFailure ? sanitizeDiagnostic(error.diagnostic) : undefined });
+    });
     return true;
   });
 });

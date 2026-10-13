@@ -1,0 +1,304 @@
+[
+  {
+    "name": "@coral-xyz/anchor",
+    "version": "0.31.1",
+    "lockPath": "node_modules/@coral-xyz/anchor",
+    "license": "(MIT OR Apache-2.0)",
+    "gitHead": "47284f8f0b9844c6b83234aa90f556bad00e12ed",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
+        "url": "https://raw.githubusercontent.com/coral-xyz/anchor/47284f8f0b9844c6b83234aa90f556bad00e12ed/LICENSE",
+        "sha256": "66a06877935811daba7b7c33c4eedf0e6017616a4cc1bb5faa4dae72c13f638e"
+      }
+    ]
+  },
+  {
+    "name": "@coral-xyz/anchor-errors",
+    "version": "0.31.1",
+    "lockPath": "node_modules/@coral-xyz/anchor-errors",
+    "license": "Apache-2.0",
+    "gitHead": "47284f8f0b9844c6b83234aa90f556bad00e12ed",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
+        "url": "https://raw.githubusercontent.com/coral-xyz/anchor/47284f8f0b9844c6b83234aa90f556bad00e12ed/LICENSE",
+        "sha256": "66a06877935811daba7b7c33c4eedf0e6017616a4cc1bb5faa4dae72c13f638e"
+      }
+    ],
+    "evidence": "Same anchor workspace release and gitHead; root Apache-2.0 license."
+  },
+  {
+    "name": "bs58",
+    "version": "4.0.1",
+    "lockPath": "node_modules/@coral-xyz/anchor/node_modules/bs58",
+    "license": "MIT",
+    "gitHead": "ba80a23f74efc055577d7040ef32e1ae765d6702",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
+        "url": "https://registry.npmjs.org/bs58/4.0.1",
+        "sha256": "13ced6a635a66e22c68575d467b7a4ac937cdd83d9f8ce9e5d00352be045cdfb",
+        "kind": "published-readme-license-section"
+      },
+      {
+        "path": "licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/bs58/4.0.1",
+        "sha256": "945ed63a49f0ebe9dda4919f007c79e2f9642758806e8c7bbb614eb058b5ddfe",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "@coral-xyz/borsh",
+    "version": "0.31.1",
+    "lockPath": "node_modules/@coral-xyz/borsh",
+    "license": "Apache-2.0",
+    "gitHead": "47284f8f0b9844c6b83234aa90f556bad00e12ed",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@coral-xyz__anchor@0.31.1/LICENSE",
+        "url": "https://raw.githubusercontent.com/coral-xyz/anchor/47284f8f0b9844c6b83234aa90f556bad00e12ed/LICENSE",
+        "sha256": "66a06877935811daba7b7c33c4eedf0e6017616a4cc1bb5faa4dae72c13f638e"
+      }
+    ],
+    "evidence": "Same anchor workspace release and gitHead; root Apache-2.0 license."
+  },
+  {
+    "name": "@pump-fun/agent-payments-sdk",
+    "version": "1.0.7",
+    "lockPath": "node_modules/@pump-fun/agent-payments-sdk",
+    "license": "ISC",
+    "gitHead": "44a98f50dccfdbc23794d859a4faeadfabf4b9c0",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@pump-fun__agent-payments-sdk@1.0.7/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/@pump-fun/agent-payments-sdk/1.0.7",
+        "sha256": "aa323d42e3c9cbcccaffa49a9caca34f02f31944900b2696f32ebce1480341ef",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "@pump-fun/pump-sdk",
+    "version": "2.0.0",
+    "lockPath": "node_modules/@pump-fun/pump-sdk",
+    "license": "MIT",
+    "gitHead": "6e3f21dc58e4d73eb8e30359b2e537773d407344",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@pump-fun__pump-sdk@2.0.0/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/@pump-fun/pump-sdk/2.0.0",
+        "sha256": "12ce12887544d7d237bfb1b8800a1e81e6d9a6c6a03492da7fd71bdd8419caa6",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "@pump-fun/pump-swap-sdk",
+    "version": "1.20.0",
+    "lockPath": "node_modules/@pump-fun/pump-swap-sdk",
+    "license": "MIT",
+    "gitHead": "0e7ebefd5ce7fbc504ab6198f0642480f8a25446",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@pump-fun__pump-swap-sdk@1.20.0/LICENSE-FROM-README.txt",
+        "url": "https://registry.npmjs.org/@pump-fun/pump-swap-sdk/1.20.0",
+        "sha256": "a52e1b72948844531a7c24b8aeed8bc778dc9d43938e4ea1494f8768db6774f0",
+        "kind": "published-readme-license-section"
+      },
+      {
+        "path": "licenses/upstream/@pump-fun__pump-swap-sdk@1.20.0/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/@pump-fun/pump-swap-sdk/1.20.0",
+        "sha256": "d89e33d43a14fd88f08347260ff275297a66773a6ecc5d0f40f7ffb6a5b78e72",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "bs58",
+    "version": "4.0.1",
+    "lockPath": "node_modules/@solana/web3.js/node_modules/bs58",
+    "license": "MIT",
+    "gitHead": "ba80a23f74efc055577d7040ef32e1ae765d6702",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
+        "url": "https://registry.npmjs.org/bs58/4.0.1",
+        "sha256": "13ced6a635a66e22c68575d467b7a4ac937cdd83d9f8ce9e5d00352be045cdfb",
+        "kind": "published-readme-license-section"
+      },
+      {
+        "path": "licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/bs58/4.0.1",
+        "sha256": "945ed63a49f0ebe9dda4919f007c79e2f9642758806e8c7bbb614eb058b5ddfe",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "agent-base",
+    "version": "6.0.2",
+    "lockPath": "node_modules/agent-base",
+    "license": "MIT",
+    "gitHead": "c4b8ea2e1a11bae023bb09b708050a50418204e9",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/agent-base@6.0.2/LICENSE-FROM-README.txt",
+        "url": "https://registry.npmjs.org/agent-base/6.0.2",
+        "sha256": "5f6b2ed15b13782de70b90e5897baeae2737bfd8fd4e5dec5f89b0264b827c4c",
+        "kind": "published-readme-license-section"
+      },
+      {
+        "path": "licenses/upstream/agent-base@6.0.2/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/agent-base/6.0.2",
+        "sha256": "cf7bdeb98c73343c3de547356cd4254396c18d74410e8ec2891da4f6baade184",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "bs58",
+    "version": "4.0.1",
+    "lockPath": "node_modules/borsh/node_modules/bs58",
+    "license": "MIT",
+    "gitHead": "ba80a23f74efc055577d7040ef32e1ae765d6702",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/bs58@4.0.1/LICENSE-FROM-README.txt",
+        "url": "https://registry.npmjs.org/bs58/4.0.1",
+        "sha256": "13ced6a635a66e22c68575d467b7a4ac937cdd83d9f8ce9e5d00352be045cdfb",
+        "kind": "published-readme-license-section"
+      },
+      {
+        "path": "licenses/upstream/bs58@4.0.1/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/bs58/4.0.1",
+        "sha256": "945ed63a49f0ebe9dda4919f007c79e2f9642758806e8c7bbb614eb058b5ddfe",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "es6-promisify",
+    "version": "5.0.0",
+    "lockPath": "node_modules/es6-promisify",
+    "license": "MIT",
+    "gitHead": "7eb2f5e9ae858742d495978efebafaee6719da97",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/es6-promisify@5.0.0/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/es6-promisify/5.0.0",
+        "sha256": "936df2d2113fd0bccaa7ee3c6aec31cd488a6a4cd06cf8ae828ec0b9e170b547",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "https-proxy-agent",
+    "version": "5.0.1",
+    "lockPath": "node_modules/https-proxy-agent",
+    "license": "MIT",
+    "gitHead": "d0d80cc0482f20495aa8595f802e1a9f3b1b3409",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/https-proxy-agent@5.0.1/LICENSE-FROM-README.txt",
+        "url": "https://registry.npmjs.org/https-proxy-agent/5.0.1",
+        "sha256": "6fc12f245f74f3bf4936d6010e0f528739092280ef4c4046718fa5a174a5ba28",
+        "kind": "published-readme-license-section"
+      },
+      {
+        "path": "licenses/upstream/https-proxy-agent@5.0.1/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/https-proxy-agent/5.0.1",
+        "sha256": "cea3b607a9fcbfac452c6550b82dc74773ad192d99c34d1bf363678998a7a5de",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "qrcode-generator",
+    "version": "2.0.4",
+    "lockPath": "node_modules/qrcode-generator",
+    "license": "MIT",
+    "gitHead": "83b7e8fe3fddd3b0368dbafd6ce56995bd25e3c8",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/qrcode-generator@2.0.4/LICENSE",
+        "url": "https://raw.githubusercontent.com/kazuhikoarase/qrcode-generator/83b7e8fe3fddd3b0368dbafd6ce56995bd25e3c8/LICENSE",
+        "sha256": "3a850fa5f08101db6f40676c2786e10bd2cd5fff7b12ffdf1e0c434d4e49d90c"
+      }
+    ]
+  },
+  {
+    "name": "tr46",
+    "version": "0.0.3",
+    "lockPath": "node_modules/tr46",
+    "license": "MIT",
+    "gitHead": "a8009f9ce80ff5dbe71dd71e203afe4e4c878d28",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/tr46@0.0.3/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/tr46/0.0.3",
+        "sha256": "99fc02f45b263d48cffba1cef0e6c4644fe1acba1aeaa61306c4453cb71cde37",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Versioned npm publisher declaration and any bundled README license section; no copyright owner/date invented."
+  },
+  {
+    "name": "wxt",
+    "version": "0.21.4",
+    "lockPath": "node_modules/wxt",
+    "license": "MIT",
+    "gitHead": null,
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/wxt@0.21.4/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/wxt/0.21.4",
+        "sha256": "eb8abfa274efda27b04a7a3b74a0c3553dc1ddefb10587106469ecd5e3002eca",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Framework runtime injected by WXT; versioned upstream publisher declaration or pinned workspace LICENSE."
+  },
+  {
+    "name": "@wxt-dev/browser",
+    "version": "0.3.4",
+    "lockPath": "node_modules/@wxt-dev/browser",
+    "license": "MIT",
+    "gitHead": null,
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@wxt-dev__browser@0.3.4/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/@wxt-dev/browser/0.3.4",
+        "sha256": "dbc811b9fb8815ade16354b4edde9750c7f391a6662ff2fb11fce25ffd95c6b0",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Framework runtime injected by WXT; versioned upstream publisher declaration or pinned workspace LICENSE."
+  },
+  {
+    "name": "@webext-core/match-patterns",
+    "version": "2.0.0",
+    "lockPath": "node_modules/@webext-core/match-patterns",
+    "license": "MIT",
+    "gitHead": "65626157c7a7ee3ac400b10df719beb1cc62ab78",
+    "noticeFiles": [
+      {
+        "path": "licenses/upstream/@webext-core__match-patterns@2.0.0/PUBLISHER-NOTICE.json",
+        "url": "https://registry.npmjs.org/@webext-core/match-patterns/2.0.0",
+        "sha256": "90b0ee61f58cd6f842129d4a008dbe8ed2d1ced71a89cb03d9547d5f9a08e837",
+        "kind": "published-package-license-declaration"
+      }
+    ],
+    "evidence": "Framework runtime injected by WXT; versioned upstream publisher declaration or pinned workspace LICENSE."
+  }
+]

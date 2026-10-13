@@ -1,0 +1,17 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "tr46",
+  "version": "0.0.3",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/Sebmaster/tr46.js.git",
+    "type": "git"
+  },
+  "author": {
+    "name": "Sebastian Mayr",
+    "email": "npm@smayr.name"
+  },
+  "gitHead": "a8009f9ce80ff5dbe71dd71e203afe4e4c878d28",
+  "source": "https://registry.npmjs.org/tr46/0.0.3",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

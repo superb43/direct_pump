@@ -33,3 +33,7 @@ it('keeps unknown errors exact without guessing a wallet or liquidity problem', 
   expect(simulationFailure('BlockhashNotFound', []).message).toContain('BlockhashNotFound');
   expect(simulationFailure({ InstructionError: [2, 'InvalidAccountData'] }, []).message).toContain('InvalidAccountData');
 });
+it('reports unknown chain failures without labeling them as simulation or slippage',()=>{
+ const failure=simulationFailure({InstructionError:[2,{Custom:6004}]},[],undefined,'CHAIN');
+ expect(failure.message).toContain('On-chain transaction failed');expect(failure.message).not.toMatch(/simulation|slippage/i);expect(failure.diagnostic.stage).toBe('CHAIN');
+});

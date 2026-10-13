@@ -2,9 +2,9 @@ import { Buffer } from 'buffer';
 import BN from 'bn.js';
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { Connection, PublicKey, Keypair, TransactionInstruction, SystemProgram } from '@solana/web3.js';
-import { NATIVE_MINT, TOKEN_PROGRAM_ID, createCloseAccountInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
+import { NATIVE_MINT, TOKEN_PROGRAM_ID, createCloseAccountInstruction, createAssociatedTokenAccountIdempotentInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token';
 import { jupiterProgram } from '../src/jupiter-coder';
-import { buildRoutedTrade, validateRouterSwap, type BuildResponse } from '../src/router';
+import { buildRoutedTrade, quoteRoutedTrade, validateRouterSwap, type BuildResponse } from '../src/router';
 import { DEFAULT_SETTINGS } from '../src/model';
 
 const mocks = vi.hoisted(() => ({ finalize: vi.fn() }));
@@ -96,4 +96,61 @@ it('strengthens a one-atom rounding difference instead of weakening quote protec
 it('reports larger protection gaps and rejects them before simulation',async()=>{
  const response=build();response.otherAmountThreshold='960';vi.mocked(fetch).mockResolvedValue({ok:true,json:async()=>response} as Response);
  await expect(buildRoutedTrade(rpc,route,wallet,'BUY',100_000_000n,settings)).rejects.toThrow('difference 10 raw output units');expect(mocks.finalize).not.toHaveBeenCalled();
+});
+
+it('quotes the same protected amounts and setup rent manifest without execution RPC calls', async () => {
+  const response = build();
+  const setup = createAssociatedTokenAccountIdempotentInstruction(wallet, getAssociatedTokenAddressSync(token, wallet), wallet, token);
+  response.setupInstructions = [wire(setup)];
+  vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => response } as Response);
+  const blockhash = vi.spyOn(rpc, 'getLatestBlockhashAndContext');
+  const simulate = vi.spyOn(rpc, 'simulateTransaction');
+  const result = await quoteRoutedTrade(rpc, route, wallet, 'BUY', 100_000_000n, settings);
+  expect(result.expected).toBe(1000n);
+  expect(result.minimum).toBe(950n);
+  expect(result.routeLabels).toEqual(['Raydium', 'Pumpfun AMM']);
+  expect(result.feeManifest[0]).toMatchObject({ program: setup.programId.toBase58(), accounts: setup.keys.map(key => key.pubkey.toBase58()) });
+  expect(result.feeManifest).toHaveLength(2);
+  expect(blockhash).not.toHaveBeenCalled();
+  expect(simulate).not.toHaveBeenCalled();
+  expect(mocks.finalize).not.toHaveBeenCalled();
+});
+it('quotes SELL with its cleanup manifest and rejects invalid response protection', async () => {
+  vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => build(true) } as Response);
+  const result = await quoteRoutedTrade(rpc, route, wallet, 'SELL', 100_000_000n, settings);
+  expect(result.expected).toBe(1000n);
+  expect(result.minimum).toBe(950n);
+  expect(result.feeManifest.at(-1)?.accounts).toEqual([getAssociatedTokenAddressSync(NATIVE_MINT, wallet).toBase58(), wallet.toBase58(), wallet.toBase58()]);
+  const invalid = build(true); invalid.otherAmountThreshold = '960';
+  vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => invalid } as Response);
+  await expect(quoteRoutedTrade(rpc, route, wallet, 'SELL', 100_000_000n, settings)).rejects.toThrow('difference 10');
+});
+it('narrows display route account limits only when the actual v0 probe exceeds size', async () => {
+  const oversized = build();
+  const ix = core();
+  for (let index = 0; index < 35; index++) ix.keys.push({ pubkey: new PublicKey(new Uint8Array(32).fill(index + 20)), isSigner: false, isWritable: false });
+  oversized.swapInstruction = wire(ix);
+  vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => oversized } as Response).mockResolvedValueOnce({ ok: true, json: async () => build() } as Response);
+  const result = await quoteRoutedTrade(rpc, route, wallet, 'BUY', 100_000_000n, settings);
+  expect(result.maxAccounts).toBe(48);
+  expect(vi.mocked(fetch).mock.calls.map(([url]) => new URL(url as string).searchParams.get('maxAccounts'))).toEqual(['64', '48']);
+  vi.mocked(fetch).mockClear().mockResolvedValue({ ok: true, json: async () => oversized } as Response);
+  await expect(quoteRoutedTrade(rpc, route, wallet, 'BUY', 100_000_000n, settings)).rejects.toBeInstanceOf(TransactionSizeError);
+  expect(vi.mocked(fetch).mock.calls.map(([url]) => new URL(url as string).searchParams.get('maxAccounts'))).toEqual(['64', '48', '32', '24']);
+});
+it('exposes HTTP status and Retry-After without retrying the failed request', async () => {
+  const now = Date.now();
+  vi.spyOn(Date, 'now').mockReturnValue(now);
+  vi.mocked(fetch).mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'Retry-After': '12' }) } as Response);
+  await expect(quoteRoutedTrade(rpc, route, wallet, 'BUY', 100_000_000n, settings)).rejects.toMatchObject({ status: 429, retryAt: now + 12_000 });
+  expect(fetch).toHaveBeenCalledOnce();
+});
+it('aborts a display quote waiting for RPC validation without running later work', async () => {
+  const controller = new AbortController();
+  vi.mocked(rpc.getMultipleAccountsInfo).mockImplementation(() => new Promise(() => {}));
+  const quote = quoteRoutedTrade(rpc, route, wallet, 'BUY', 100_000_000n, settings, controller.signal);
+  await vi.waitFor(() => expect(rpc.getMultipleAccountsInfo).toHaveBeenCalled());
+  controller.abort(new Error('Quote deadline expired'));
+  await expect(quote).rejects.toThrow('Quote deadline expired');
+  expect(mocks.finalize).not.toHaveBeenCalled();
 });

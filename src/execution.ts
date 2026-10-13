@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { NATIVE_MINT, unpackMint } from '@solana/spl-token';
-import { bondingCurvePda, PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-sdk';
+import { bondingCurvePda, PUMP_SDK, PUMP_PROGRAM_ID, PUMP_AMM_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { PUMP_AMM_SDK, canonicalPumpPoolPda } from '@pump-fun/pump-swap-sdk';
 import type { PageTarget } from './model';
 import { resolveRoute, assertTokenProgram } from './protocol';
@@ -10,6 +10,7 @@ import { DLMM_PROGRAM_ID, decodeDlmmPair, selectPoolMint } from './dlmm';
 async function validateMint(rpc: Connection, mint: PublicKey) {
   const info = await rpc.getAccountInfo(mint);
   if (!info) throw new Error('The page token mint was not found.');
+  if (info.executable) throw new Error('The page token mint account is executable.');
   assertTokenProgram(info.owner);
   if (!unpackMint(mint, info, info.owner).isInitialized) throw new Error('The page token mint is not initialized.');
 }
@@ -30,6 +31,18 @@ export async function resolveExecution(rpc: Connection, target: PageTarget) {
   if (explicitPool) {
     const info = await rpc.getAccountInfo(explicitPool);
     if (!info) throw new Error('The page pool account was not found.');
+    if (info.owner.equals(PUMP_PROGRAM_ID)) {
+      if (info.executable) throw new Error('The page bonding curve account is executable.');
+      if (!wanted) throw new Error('Waiting for the page token mint. Retry when token metadata has loaded.');
+      if (!bondingCurvePda(wanted).equals(explicitPool)) throw new Error('The page bonding curve does not match the token mint.');
+      await validateMint(rpc, wanted);
+      // The pinned SDK checks the discriminator and supports live curve layouts.
+      PUMP_SDK.decodeBondingCurve(info);
+      // Preserve the page assertion and its cache/trade identity. Only the
+      // verified route lookup uses a mint view of this same token.
+      const route = await resolveRoute(rpc, { ...target, kind: 'MINT', address: wanted.toBase58() });
+      return route.quoteMint.equals(NATIVE_MINT) ? route : routed(route.mint, route.account, 'NON_SOL_PAIR');
+    }
     if (info.owner.equals(DLMM_PROGRAM_ID)) {
       const { tokenX, tokenY } = decodeDlmmPair(info);
       const mint = selectPoolMint(tokenX, tokenY, wanted);

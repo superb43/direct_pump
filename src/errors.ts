@@ -1,9 +1,16 @@
 export function redactUrls(message: string): string {
-  return message.replace(/https:\/\/[^\s)]+/g, '[RPC]');
+  return message.replace(/(?:https?|wss?):\/\/[^\s)]+/gi, '[RPC]');
 }
+
+export function isMissingReceiver(error: unknown): boolean {
+  return /Could not establish connection\. Receiving end does not exist\.?/i.test(error instanceof Error ? error.message : String(error));
+}
+
+export const PAGE_CONNECTION_ERROR = 'Could not connect to this token page. Please refresh the page and try again.';
 
 export function userFacingError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
+  if (isMissingReceiver(error)) return PAGE_CONNECTION_ERROR;
   if (/indexed requests require a personal token/i.test(message)) return 'This RPC allows account reads but blocks indexed pool discovery. Use a page-bound pool address or an RPC with getProgramAccounts access.';
   if (/^Jupiter\b|^Phantom\b/.test(message)) return redactUrls(message);
   if (/\b403\s*:|\bHTTP(?: Error)?\s+403\b|access forbidden|\bforbidden\b/i.test(message)) {

@@ -1,0 +1,13 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "@pump-fun/agent-payments-sdk",
+  "version": "1.0.7",
+  "license": "ISC",
+  "repository": null,
+  "author": {
+    "name": "Pump Fun"
+  },
+  "gitHead": "44a98f50dccfdbc23794d859a4faeadfabf4b9c0",
+  "source": "https://registry.npmjs.org/@pump-fun/agent-payments-sdk/1.0.7",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

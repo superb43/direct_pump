@@ -37,6 +37,20 @@ it('keeps shared UI and financial modules free of site DOM readers transitively'
 it('keeps the pure site catalog free of runtime browser and wallet dependencies',()=>{
   expect(runtimeSpecifiers(resolve(root,'src/sites/catalog.ts'))).toEqual([]);
 });
+it('keeps review and execution policies independent from views, orchestration and persistence',()=>{
+  const forbidden=/^(?:server\/(?:engine|signer|store|api)\.ts|src\/pro\/(?:(?:panel|settings|withdrawal|onboarding|wallet)-view|view)\.ts|src\/worker\/|src\/sites\/(?:reader|dom|gmgn|axiom|fomo)\.ts)/;
+  for(const entry of ['src/pro/panel-review.ts','server/strategy.ts','server/risk-policy.ts']){
+    expect([...dependencies(entry)].map(file=>relative(root,file)).filter(file=>forbidden.test(file)),entry).toEqual([]);
+  }
+});
+it('keeps diagnostics and pure domain entry graphs free of runtime import cycles',()=>{
+  const complete=new Set<string>(),active=new Set<string>();
+  function visit(file:string){
+    expect(active.has(file),relative(root,file)).toBe(false);if(complete.has(file))return;
+    active.add(file);for(const dependency of runtimeImports(file))visit(dependency);active.delete(file);complete.add(file);
+  }
+  for(const entry of ['src/diagnostics.ts','src/pro/panel-review.ts','server/strategy.ts'])visit(resolve(root,entry));
+});
 it('allows site selection only inside the fixed site boundary',()=>{
   function files(directory:string):string[]{return readdirSync(directory,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?files(resolve(directory,entry.name)):entry.name.endsWith('.ts')?[resolve(directory,entry.name)]:[]);}
   for(const file of files(resolve(root,'src')).filter(file=>!relative(root,file).startsWith('src/sites/')&&!relative(root,file).startsWith('src/vendor/'))){

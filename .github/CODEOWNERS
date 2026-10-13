@@ -1,0 +1,17 @@
+# Sensitive financial and release boundaries route review to the maintainer.
+# Solo operation retains PR/CI gates without mandatory non-author approval.
+# Re-enable owner approvals when a second trusted reviewer has write access.
+/server/ @superb43
+/src/worker/ @superb43
+/src/pro/ @superb43
+/src/execution.ts @superb43
+/src/phantom.ts @superb43
+/src/wallet-bridge.ts @superb43
+/src/reconcile.ts @superb43
+/src/settings.ts @superb43
+/src/ledger.ts @superb43
+/.github/ @superb43
+/scripts/ @superb43
+/LICENSE @superb43
+/COPYRIGHT @superb43
+/licenses/ @superb43

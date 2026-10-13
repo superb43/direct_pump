@@ -20,6 +20,12 @@ export function decodeDlmmPair(info: AccountInfo<Buffer>): { tokenX: PublicKey; 
   return { tokenX: pair.token_x_mint, tokenY: pair.token_y_mint };
 }
 
+export function dlmmPriceVaults(info:AccountInfo<Buffer>):PublicKey[]{
+  decodeDlmmPair(info);
+  const pair=coder.decode('LbPair',info.data) as {reserve_x:PublicKey;reserve_y:PublicKey};
+  return [pair.reserve_x,pair.reserve_y];
+}
+
 export function selectPoolMint(tokenA: PublicKey, tokenB: PublicKey, wanted?: PublicKey): PublicKey {
   if (wanted) {
     if (!wanted.equals(tokenA) && !wanted.equals(tokenB)) throw new Error('Pool does not contain the page token.');

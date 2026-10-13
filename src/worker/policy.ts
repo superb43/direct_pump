@@ -8,6 +8,14 @@ export async function authorizeRequest(request: WorkerRequest, sender: Browser.r
   if (!request || typeof request !== 'object' || sender.id !== browser.runtime.id || !requestPolicy(request.type)) throw new Error('Invalid request.');
   const policy = requestPolicy(request.type)!.access;
   const url = sender.url ?? '';
+  if (policy === 'PRO_PRIVATE') {
+    if (!(['/sidepanel.html', '/settings.html', '/dashboard.html'] as const).some(path => url.split(/[?#]/)[0] === browser.runtime.getURL(path))) throw new Error('Pro and diagnostics are only available in native extension pages.');
+    return;
+  }
+  if (policy === 'PORTFOLIO_PRIVATE') {
+    if (!(['/sidepanel.html', '/dashboard.html'] as const).some(path => url.split(/[?#]/)[0] === browser.runtime.getURL(path))) throw new Error('Holdings are only available in the extension panel and dashboard.');
+    return;
+  }
   if (policy === 'SETTINGS_PRIVATE') {
     if (url !== browser.runtime.getURL('/settings.html')) throw new Error('Private settings are only available in the extension Settings page.');
     return;

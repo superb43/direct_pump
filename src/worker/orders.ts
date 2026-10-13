@@ -1,3 +1,4 @@
+import { FEE_AUDIT_VERSION } from '../fee-audit-version';
 import { browser, type Browser } from 'wxt/browser';
 import { Connection, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
@@ -9,6 +10,8 @@ import { userFacingError } from '../errors';
 import { reconcileMissingSignature } from '../reconcile';
 import { verifyFeeReceipt, pendingFees } from '../fee-receipt';
 import { recordVerifiedTrade, archiveReceipt, receiptBySignature } from '../ledger';
+import {logEvent} from '../diagnostics';
+import {cleanReceipt} from '../receipt-diagnostics';
 
 export type FrameFor = (sender: Browser.runtime.MessageSender, request: WorkerRequest & { target: unknown }) => Promise<SigningFrame>;
 
@@ -20,6 +23,7 @@ export function createOrders(loadSettings: () => Promise<Settings>, frameFor: Fr
   const loadReceipt = async (wallet: string): Promise<Receipt | undefined> => (await browser.storage.local.get(receiptKey(wallet)))[receiptKey(wallet)] as Receipt | undefined;
   let receiptWrites:Promise<void>=Promise.resolve();
   const writeLatest=(receipt:Receipt,onlyForSignature?:string)=>{
+    receipt=cleanReceipt(receipt);
     const write=receiptWrites.then(async()=>{
       if(onlyForSignature&&(await loadReceipt(receipt.wallet))?.signature!==onlyForSignature)return;
       await browser.storage.local.set({[receiptKey(receipt.wallet)]:receipt});
@@ -28,7 +32,8 @@ export function createOrders(loadSettings: () => Promise<Settings>, frameFor: Fr
   };
   const saveReceipt = async (receipt: Receipt) => {
     await writeLatest(receipt);
-    try { await archiveReceipt(receipt); } catch { /* Accounting must not lose/unlock a submitted trade. */ }
+    logEvent({level:receipt.status==='FAILED'?'error':'info',component:'orders',type:'trade.state',orderId:receipt.orderId,signature:receipt.signature,details:{state:receipt.status,reason:receipt.error}});
+    try { await archiveReceipt(receipt); } catch(error) { logEvent({level:'error',component:'ledger',type:'receipt.archive.failed',orderId:receipt.orderId,signature:receipt.signature,details:{error}}); }
   };
   const feeRequests = new Map<string,Promise<Receipt>>();
   async function audit(receipt: Receipt): Promise<Receipt> {
@@ -38,7 +43,10 @@ export function createOrders(loadSettings: () => Promise<Settings>, frameFor: Fr
       let feeReceipt;
       try { const settings=await loadSettings(); feeReceipt=await verifyFeeReceipt(new Connection(settings.rpcUrl,'confirmed'),receipt); }
       catch(error) { feeReceipt=pendingFees(`Fee verification is unavailable: ${userFacingError(error)}`,'UNAVAILABLE'); }
-      const updated:Receipt={...receipt,feeReceipt,status:feeReceipt.state==='VERIFIED'?(feeReceipt.executionSucceeded?'CONFIRMED':'FAILED'):receipt.status};
+      // A transient RPC failure must not erase the captured historical FX quote.
+      if(!feeReceipt.usd&&receipt.feeReceipt?.usd)feeReceipt={...feeReceipt,usd:receipt.feeReceipt.usd};
+      const updated:Receipt={...receipt,feeReceipt,status:feeReceipt.state==='VERIFIED'?(feeReceipt.executionSucceeded?'CONFIRMED':'FAILED'):receipt.status,
+        error:feeReceipt.executionError??receipt.error,diagnostic:feeReceipt.diagnostic??receipt.diagnostic};
       try {
         await archiveReceipt(updated);
         if(updated.status==='CONFIRMED') await recordVerifiedTrade({signature:updated.signature!,wallet:updated.wallet,mint:updated.mint,side:updated.side,createdAt:updated.createdAt,feeReceipt});
@@ -50,7 +58,7 @@ export function createOrders(loadSettings: () => Promise<Settings>, frameFor: Fr
     })().finally(()=>feeRequests.delete(receipt.signature!));
     feeRequests.set(receipt.signature,job); return job;
   }
-  const scheduleAudit=(receipt:Receipt)=>{if(receipt.signature&&receipt.feeManifest?.length&&(!receipt.feeReceipt||receipt.feeReceipt.state==='PENDING'||receipt.feeReceipt.auditVersion!==2)) void audit(receipt).catch(()=>{});};
+  const scheduleAudit=(receipt:Receipt)=>{if(receipt.signature&&receipt.feeManifest?.length&&(!receipt.feeReceipt||receipt.feeReceipt.state==='PENDING'||receipt.feeReceipt.auditVersion!==FEE_AUDIT_VERSION)) void audit(receipt).catch(error=>{logEvent({level:'warn',component:'audit',type:'fee.audit.failed',signature:receipt.signature,details:{error}});});};
 
 
 

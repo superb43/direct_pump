@@ -1,0 +1,17 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "es6-promisify",
+  "version": "5.0.0",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/digitaldesignlabs/es6-promisify.git",
+    "type": "git"
+  },
+  "author": {
+    "name": "Mike Hall",
+    "email": "mikehall314@gmail.com"
+  },
+  "gitHead": "7eb2f5e9ae858742d495978efebafaee6719da97",
+  "source": "https://registry.npmjs.org/es6-promisify/5.0.0",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

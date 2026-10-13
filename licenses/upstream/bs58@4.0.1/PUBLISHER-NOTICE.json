@@ -1,0 +1,14 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "bs58",
+  "version": "4.0.1",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/cryptocoinjs/bs58.git",
+    "type": "git"
+  },
+  "author": null,
+  "gitHead": "ba80a23f74efc055577d7040ef32e1ae765d6702",
+  "source": "https://registry.npmjs.org/bs58/4.0.1",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

@@ -1,0 +1,15 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "@webext-core/match-patterns",
+  "version": "2.0.0",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/aklinker1/webext-core.git",
+    "type": "git",
+    "directory": "packages/match-patterns"
+  },
+  "author": null,
+  "gitHead": "65626157c7a7ee3ac400b10df719beb1cc62ab78",
+  "source": "https://registry.npmjs.org/@webext-core/match-patterns/2.0.0",
+  "standaloneLicenseFile": "Not included in this published npm package; retain original package notices."
+}

@@ -15,6 +15,7 @@ export type TradeIntent = { side: 'BUY'; sol: string } | { side: 'BUY'; amount: 
 
 export type Settings = {
   rpcUrl: string;
+  priceWsUrl?: string;
   slippageBps: number;
   spendLimitsEnabled: boolean;
   maxBuySol: string;
@@ -46,6 +47,7 @@ export type Receipt = {
   frame?: { tabId: number; documentId: string };
   wallet: string;
   mint: string;
+  symbol?: string;
   venue: Venue;
   side: 'BUY' | 'SELL';
   pageUrl: string;
@@ -65,7 +67,7 @@ export type Receipt = {
 };
 
 export type TradeDiagnostic = {
-  stage: 'SIMULATION' | 'PHANTOM_PREPARE' | 'PHANTOM_REQUEST';
+  stage: 'SIMULATION' | 'PHANTOM_PREPARE' | 'PHANTOM_REQUEST' | 'CHAIN';
   code?: string | number;
   instructionIndex?: number;
   program?: string;
@@ -75,6 +77,8 @@ export type TradeDiagnostic = {
 };
 
 export type WorkerRequest =
+  | import('./pro/contracts').ProRequest
+  | { type: 'DIAGNOSTICS'; action: 'EXPORT' | 'DEBUG' }
   | { type: 'CONNECT'; target: PageTarget }
   | { type: 'WALLET_RESTORE'; target: PageTarget }
   | { type: 'WALLET_SWITCH'; target: PageTarget }
@@ -82,6 +86,8 @@ export type WorkerRequest =
   | { type: 'OPEN_SETTINGS' }
   | { type: 'OPEN_DASHBOARD' }
   | { type: 'HISTORY'; wallet?: string; mint?: string }
+  | { type: 'PORTFOLIO'; wallet: string; refresh?: boolean }
+  | { type: 'PORTFOLIO_PRICES'; wallet: string }
   | { type: 'POSITION'; target: PageTarget; wallet: string; market?: MarketHint; holdingsOnly?: boolean; refresh?: boolean }
   | { type: 'MARKET_UPDATE'; target: PageTarget; market?: MarketHint }
   | { type: 'TRADE'; target: PageTarget; wallet: string; intent: TradeIntent }
@@ -94,7 +100,7 @@ export type WorkerRequest =
   | { type: 'SETTINGS_SAVE'; settings: Settings };
 
 export type WorkerResponse =
-  | { ok: true; wallet?: string; receipt?: Receipt; settings?: Settings; publicSettings?: PublicSettings; token?: TokenInfo; savings?: Savings; receipts?: Receipt[]; position?: PositionSnapshot }
+  | { ok: true; data?: unknown; wallet?: string; receipt?: Receipt; settings?: Settings; publicSettings?: PublicSettings; token?: TokenInfo; savings?: Savings; receipts?: Receipt[]; position?: PositionSnapshot; portfolio?: PortfolioSnapshot }
   | { ok: false; error: string; diagnostic?: TradeDiagnostic };
 
 export type ManifestInstruction = { program: string; accounts: string[]; data: string };
@@ -119,7 +125,11 @@ export type FeeReceipt = {
   protocolFees: FeeAmount[];
   protocolBreakdownIncomplete: boolean;
   zeroExtraFeesVerified: boolean;
+  terminalFeeLamports?: string;
+  terminalFeeSource?: 'VERIFIED_PLAN' | 'USER_CONFIRMED';
   executionSucceeded?: boolean;
+  executionError?: string;
+  diagnostic?: TradeDiagnostic;
   volumeLamports?: string;
   volumeUsdMicros?: string;
   usd?: UsdSnapshot;
@@ -128,9 +138,20 @@ export type Savings = { volumeUsdMicros: string; savedUsdMicros: string; verifie
 export type LedgerTrade = { signature: string; wallet: string; mint: string; side: 'BUY' | 'SELL'; createdAt: number; feeReceipt: FeeReceipt };
 
 export type MarketHint = {mint:string;observedAt:number;priceUsd?:string;marketCapUsd?:string;source:'GMGN page'|'Axiom page'|'FOMO page'};
+export type QuoteIssue = {kind:'RPC'|'ROUTE'|'USD';message:string;retryable:boolean;retryAt?:number;status?:number};
 export type PositionSnapshot = {
+ chartEntry?:import('./chart-entry').ChartEntry;
+ chartEntryNote?:string;
  wallet:string;mint:string;balanceRaw:string;decimals:number;supplyRaw:string;updatedAt:number;balanceUpdatedAt?:number;
+ openedAt?:number;
  costBasisUsdMicros?:string;costBasisSolLamports?:string;
+ costBasisEstimated?:boolean;
  expectedExitLamports?:string;exitNetworkLamports?:string;exitSetupLamports?:string;
+ pricePool?:string;
  solUsd?:UsdSnapshot;market?:MarketHint;warning?:string;
+ quoteIssue?:QuoteIssue;usdIssue?:QuoteIssue;
 };
+
+export type PriceMode = 'LIVE' | 'POLLING' | 'STALE';
+export type PortfolioHolding = { mint: string; symbol?: string; pageUrl?: string; position?: PositionSnapshot; error?: string; pricingPending?: boolean; priceMode?: PriceMode; priceUpdatedAt?: number };
+export type PortfolioSnapshot = { wallet: string; updatedAt: number; holdings: PortfolioHolding[]; balanceError?: string; nextRefreshAt?: number };

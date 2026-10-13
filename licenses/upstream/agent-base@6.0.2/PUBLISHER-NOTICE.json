@@ -1,0 +1,18 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "agent-base",
+  "version": "6.0.2",
+  "license": "MIT",
+  "repository": {
+    "url": "git://github.com/TooTallNate/node-agent-base.git",
+    "type": "git"
+  },
+  "author": {
+    "url": "http://n8.io/",
+    "name": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net"
+  },
+  "gitHead": "c4b8ea2e1a11bae023bb09b708050a50418204e9",
+  "source": "https://registry.npmjs.org/agent-base/6.0.2",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

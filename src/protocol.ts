@@ -115,9 +115,16 @@ export async function buildTrade(
   return buildPumpTrade(connection, await resolveRoute(connection, target), wallet, intent, settings);
 }
 
+/** Quotes use the fee-inclusive SDK expectation; execution keeps its slippage floor. */
+export function pumpOutputBound(expected:bigint,slippageBps:number,quoteOnly=false):bigint{
+  if(quoteOnly){if(expected<=0n||expected>18_446_744_073_709_551_615n)throw new Error('Invalid expected quote output.');return expected;}
+  return minimumOutput(expected,slippageBps);
+}
+
 export async function buildPumpTrade(
   connection: Connection, route: Awaited<ReturnType<typeof resolveRoute>>, wallet: PublicKey,
   intent: TradeIntent, settings: Settings,
+  options: { exactInput?: bigint; minimumOutput?: bigint; quoteOnly?: boolean } = {},
 ) {
   const mintInfo = await connection.getAccountInfo(route.mint);
   if (!mintInfo) throw new Error('Token mint account was not found.');
@@ -137,7 +144,8 @@ export async function buildPumpTrade(
   const nativeQuote = route.quoteMint.equals(NATIVE_MINT);
   if (intent.side === 'BUY' && 'sol' in intent && !nativeQuote) throw new Error(`This pool requires quote asset ${route.quoteMint.toBase58()}. Reload the panel to use its payment-asset amount.`);
   if (intent.side === 'BUY' && 'paymentMint' in intent && intent.paymentMint !== route.quoteMint.toBase58()) throw new Error('The selected payment asset does not match this pool.');
-  const input = intent.side === 'BUY' ? parseUnits('amount' in intent ? intent.amount : intent.sol, quote.decimals) : sellAmount(balance, intent.percent);
+  const input = options.exactInput ?? (intent.side === 'BUY' ? parseUnits('amount' in intent ? intent.amount : intent.sol, quote.decimals) : sellAmount(balance, intent.percent));
+  if (input <= 0n || intent.side === 'SELL' && input > balance) throw new Error('Insufficient reserved input balance.');
   const maximum = nativeQuote ? settings.maxBuySol : settings.maxQuoteBuyAmount;
   if (settings.spendLimitsEnabled && intent.side === 'BUY' && input > parseUnits(maximum, quote.decimals)) {
     throw new Error(`Maximum buy is ${maximum} units of the payment asset.`);
@@ -161,12 +169,14 @@ export async function buildPumpTrade(
     let minimum: bigint;
     if (intent.side === 'BUY') {
       const expected = getBuyTokenAmountFromSolAmount({ global, feeConfig, mintSupply: bn(mint.supply), bondingCurve: state.bondingCurve, amount: bn(input), quoteMint: route.quoteMint });
-      minimum = minimumOutput(BigInt(expected.toString()), settings.slippageBps);
+      minimum = pumpOutputBound(BigInt(expected.toString()), settings.slippageBps, options.quoteOnly);
+      if (options.minimumOutput && minimum < options.minimumOutput) minimum = options.minimumOutput;
       instructions = await PUMP_SDK.buyV2Instructions({ global, ...state, mint: route.mint, user: wallet, amount: expected, quoteAmount: bn(input), slippage: 0, tokenProgram: mintInfo.owner });
       instructions = replaceBuyInstruction(instructions, PUMP_PROGRAM_ID, 'buyV2', 'buyExactQuoteInV2', input, minimum, getPumpProgram(connection).coder.instruction);
     } else {
       const expected = getSellSolAmountFromTokenAmount({ global, feeConfig, mintSupply: bn(mint.supply), bondingCurve: state.bondingCurve, amount: bn(input) });
-      minimum = minimumOutput(BigInt(expected.toString()), settings.slippageBps);
+      minimum = pumpOutputBound(BigInt(expected.toString()), settings.slippageBps, options.quoteOnly);
+      if (options.minimumOutput && minimum < options.minimumOutput) minimum = options.minimumOutput;
       instructions = await PUMP_SDK.sellV2Instructions({ global, ...state, mint: route.mint, user: wallet, amount: bn(input), quoteAmount: bn(minimum), slippage: 0, tokenProgram: mintInfo.owner });
     }
     policy = { wallet, mint: route.mint, baseProgram: mintInfo.owner, quoteMint: route.quoteMint, quoteProgram: quoteInfo.owner, venue: route.venue, routeAccount: route.account, creator: state.bondingCurve.creator, side: intent.side, input, minimum,
@@ -178,7 +188,8 @@ export async function buildPumpTrade(
     let minimum: bigint;
     if (intent.side === 'BUY') {
       const quote = buyQuoteInput({ quote: bn(input), slippage: 0, baseReserve: state.poolBaseAmount, quoteReserve: state.poolQuoteAmount, virtualQuoteReserves: state.pool.virtualQuoteReserves, globalConfig: state.globalConfig, baseMintAccount: state.baseMintAccount, baseMint: state.baseMint, coinCreator: state.pool.coinCreator, creator: state.pool.creator, feeConfig: state.feeConfig, quoteMint: state.pool.quoteMint, isMayhemMode: state.pool.isMayhemMode, creatorFeeBps: state.pool.creatorFeeBps });
-      minimum = minimumOutput(BigInt(quote.base.toString()), settings.slippageBps);
+      minimum = pumpOutputBound(BigInt(quote.base.toString()), settings.slippageBps, options.quoteOnly);
+      if (options.minimumOutput && minimum < options.minimumOutput) minimum = options.minimumOutput;
       instructions = await PUMP_AMM_SDK.buyInstructions(state, quote.base, bn(input));
       instructions = replaceBuyInstruction(instructions, PUMP_AMM_PROGRAM_ID, 'buy', 'buyExactQuoteIn', input, minimum, OFFLINE_PUMP_AMM_PROGRAM.coder.instruction);
     } else {
@@ -187,6 +198,11 @@ export async function buildPumpTrade(
       const swap = instructions.find(ix => ix.programId.equals(PUMP_AMM_PROGRAM_ID) && coder.decode(ix.data)?.name === 'sell');
       const decoded = swap && coder.decode(swap.data);
       minimum = BigInt((decoded?.data as { minQuoteAmountOut: BN }).minQuoteAmountOut.toString());
+      if (options.minimumOutput && minimum < options.minimumOutput && swap && decoded) {
+        minimum = options.minimumOutput;
+        (decoded.data as { minQuoteAmountOut: BN }).minQuoteAmountOut = bn(minimum);
+        swap.data = OFFLINE_PUMP_AMM_PROGRAM.coder.instruction.encode(decoded.name, decoded.data);
+      }
       if (minimum <= 0n) throw new Error('Insufficient liquidity.');
     }
     policy = { wallet, mint: route.mint, baseProgram: mintInfo.owner, quoteMint: route.quoteMint, quoteProgram: quoteInfo.owner, venue: route.venue, routeAccount: route.account, creator: state.pool.coinCreator, side: intent.side, input, minimum,
@@ -203,6 +219,7 @@ export async function buildPumpTrade(
   );
   const probe = makeTransaction(1_400_000, 0);
   if (probe.serialize().length > 1232) throw new Error('This transaction exceeds the supported size limit.');
+  if (options.quoteOnly) return { transaction: probe, feeManifest: instructionManifest(probe.message), route, latest, observedSlot: latestResponse.context.slot, input, minimum: policy.minimum };
   const simulation = await connection.simulateTransaction(probe, { sigVerify: false, commitment: 'confirmed' });
   if (simulation.value.err) throw simulationFailure(simulation.value.err, simulation.value.logs, probe);
   if (!simulation.value.unitsConsumed) throw new Error('The RPC simulation response did not include unitsConsumed.');

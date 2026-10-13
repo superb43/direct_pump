@@ -1,10 +1,13 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { Connection, PublicKey, Keypair, SystemProgram, ComputeBudgetProgram, TransactionMessage, type ParsedTransactionWithMeta, type VersionedTransactionResponse } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, SystemProgram, ComputeBudgetProgram, TransactionMessage, TransactionInstruction, VersionedTransaction, type ParsedTransactionWithMeta, type VersionedTransactionResponse } from '@solana/web3.js';
 import { NATIVE_MINT, getAssociatedTokenAddressSync, createCloseAccountInstruction } from '@solana/spl-token';
+import bs58 from 'bs58';
 import { instructionManifest } from '../src/manifest';
 import { analyzeFeeFacts, verifyFeeReceipt } from '../src/fee-receipt';
 import { priceMicros, volumeUsd, updateSavings, EMPTY_SAVINGS } from '../src/savings';
 import type { Receipt, LedgerTrade } from '../src/model';
+import { OFFLINE_PUMP_AMM_PROGRAM } from '@pump-fun/pump-swap-sdk';
+import maxpain from './fixtures/chain/pump-maxpain-sell.json';
 
 const wallet=Keypair.fromSeed(new Uint8Array(32).fill(1)).publicKey;
 const target=Keypair.fromSeed(new Uint8Array(32).fill(2)).publicKey;
@@ -92,4 +95,52 @@ it('compares stored manifests by values even when Chrome storage changes object 
 it('shows actual network cost on a genuine mismatch without crediting savings',()=>{
  const {tx,parsed,receipt}=fixture(false,true);const r=analyzeFeeFacts(receipt,tx,parsed);
  expect(r.state).toBe('MISMATCH');expect(r.totalNetworkLamports).toBe('205000');expect(r.priorityLamports).toBe('200000');expect(r.volumeUsdMicros).toBeUndefined();expect(r.differences?.length).toBeGreaterThan(0);
+});
+
+it('accepts the exact appended Phantom assertion pair without relaxing the original plan',()=>{
+ const f=fixture();
+ const original=f.tx.transaction.message;
+ const instructions=[...original.compiledInstructions].map(ix=>new TransactionInstruction({programId:original.staticAccountKeys[ix.programIdIndex]!,data:Buffer.from(ix.data),keys:ix.accountKeyIndexes.map(index=>({pubkey:original.staticAccountKeys[index]!,isSigner:original.isAccountSigner(index),isWritable:original.isAccountWritable(index)}))}));
+ const programId=new PublicKey('L2TExMFKdjpN9kozasaurPirfHy9P8sbXoAN1qA3S95');
+ instructions.push(...[[wallet,'BgfmnACUYBKstZ5ATFaEA2S7gQdXV9JJY55'],[ata,'2MWjo7YpRNTqTvArLxMJdjGBdALpsLFa8VCcX']].map(([pubkey,data])=>new TransactionInstruction({programId,keys:[{pubkey:pubkey as PublicKey,isSigner:false,isWritable:false}],data:Buffer.from(bs58.decode(data as string))})));
+ const message=new TransactionMessage({payerKey:wallet,recentBlockhash:PublicKey.default.toBase58(),instructions}).compileToV0Message();
+ const oldKeys=original.getAccountKeys(),newKeys=message.getAccountKeys();
+ for(const name of ['preBalances','postBalances'] as const){const old=f.tx.meta![name];f.tx.meta![name]=Array.from({length:newKeys.length},(_,i)=>{const oldIndex=Array.from({length:oldKeys.length},(_,j)=>j).find(j=>oldKeys.get(j)!.equals(newKeys.get(i)!));return oldIndex===undefined?0:old[oldIndex]!;});}
+ f.tx.meta!.postTokenBalances![0]!.accountIndex=Array.from({length:newKeys.length},(_,i)=>i).find(i=>newKeys.get(i)!.equals(ata))!;
+ f.tx.transaction.message=message;
+ expect(analyzeFeeFacts(f.receipt,f.tx,f.parsed)).toMatchObject({state:'VERIFIED',volumeLamports:String(volume),zeroExtraFeesVerified:true});
+ f.receipt.feeManifest![0]!.data='changed';
+ expect(analyzeFeeFacts(f.receipt,f.tx,f.parsed).state).toBe('MISMATCH');
+});
+
+it('isolates the real maxpain full SELL with the observed Phantom guard layout',()=>{
+ const transaction=VersionedTransaction.deserialize(Buffer.from(maxpain.raw.transaction[0]!, 'base64'));
+ const tx={...maxpain.raw,transaction:{message:transaction.message,signatures:transaction.signatures.map(signature=>bs58.encode(signature))},meta:{...maxpain.raw.meta,loadedAddresses:{writable:maxpain.raw.meta.loadedAddresses.writable.map(key=>new PublicKey(key)),readonly:maxpain.raw.meta.loadedAddresses.readonly.map(key=>new PublicKey(key))}}} as VersionedTransactionResponse;
+ const parsed=maxpain.parsed as unknown as ParsedTransactionWithMeta;
+ // This fixture supplies the original on-chain prefix as its test plan; it
+ // does not assert that a stored local plan may be replaced with chain data.
+ const plan=instructionManifest(transaction.message,{accountKeysFromLookups:tx.meta!.loadedAddresses!}).slice(0,-2);
+ const receipt:Receipt={signature:tx.transaction.signatures[0],wallet:'6bCFu4zFAnWUvQ12vdMRwtEH8bQVwbvEUx3AbdX7NA7V',mint:'EVD9rS4kGfSnwEzsQWxBnQAgM8ha3iCfbbe6GFNMpump',symbol:'maxpain',side:'SELL',venue:'PUMP_SWAP',status:'CONFIRMED',message:'',pageUrl:'https://gmgn.ai/sol/token/EVD9rS4kGfSnwEzsQWxBnQAgM8ha3iCfbbe6GFNMpump',blockhash:'',lastValidBlockHeight:1,createdAt:maxpain.raw.blockTime!*1000,feeManifest:plan};
+ expect(analyzeFeeFacts(receipt,tx,parsed)).toMatchObject({state:'VERIFIED',executionSucceeded:true,zeroExtraFeesVerified:true,totalNetworkLamports:'105000',priorityLamports:'100000',volumeLamports:'7220745',tokenBeforeRaw:'18915014205',tokenAfterRaw:'0'});
+ receipt.feeManifest![1]!.data='changed';
+ expect(analyzeFeeFacts(receipt,tx,parsed)).toMatchObject({state:'MISMATCH',zeroExtraFeesVerified:false});
+ expect(analyzeFeeFacts(receipt,tx,parsed).volumeLamports).toBeUndefined();
+});
+
+it('prices confirmed network costs on a mismatch without inventing cost basis or savings',async()=>{
+ const {tx,parsed,receipt}=fixture(false,true);
+ receipt.feeReceipt={state:'MISMATCH',checkedAt:0,note:'prior',protocolBreakdownIncomplete:true,protocolFees:[],zeroExtraFeesVerified:false,usd:{priceMicros:'120000000',capturedAt:Date.now(),source:'Coinbase spot'}};
+ const rpc=new Connection('https://rpc.test');vi.spyOn(rpc,'getTransaction').mockResolvedValue(tx);vi.spyOn(rpc,'getParsedTransaction').mockResolvedValue(parsed);
+ const result=await verifyFeeReceipt(rpc,receipt);
+ expect(result).toMatchObject({state:'MISMATCH',usd:receipt.feeReceipt!.usd,totalNetworkLamports:'205000',zeroExtraFeesVerified:false});expect(result.volumeUsdMicros).toBeUndefined();
+});
+
+it('preserves on-chain slippage diagnostics and prices failed network fees without reverted volume',async()=>{
+ const {tx,parsed,receipt}=fixture();
+ tx.meta!.err={InstructionError:[2,{Custom:6004}]};tx.meta!.logMessages=[`Program ${OFFLINE_PUMP_AMM_PROGRAM.programId} failed: custom program error: 0x1774`];
+ receipt.feeReceipt={state:'PENDING',checkedAt:0,note:'prior',protocolBreakdownIncomplete:true,protocolFees:[],zeroExtraFeesVerified:false,usd:{priceMicros:'120000000',capturedAt:Date.now(),source:'Coinbase spot'}};
+ const rpc=new Connection('https://rpc.test');vi.spyOn(rpc,'getTransaction').mockResolvedValue(tx);vi.spyOn(rpc,'getParsedTransaction').mockResolvedValue(parsed);
+ const result=await verifyFeeReceipt(rpc,receipt);
+ expect(result).toMatchObject({state:'VERIFIED',executionSucceeded:false,totalNetworkLamports:'205000',usd:receipt.feeReceipt.usd,diagnostic:{stage:'CHAIN',code:6004,instructionIndex:2}});
+ expect(result.executionError).toMatch(/Slippage limit exceeded/);expect(result.volumeLamports).toBeUndefined();expect(result.volumeUsdMicros).toBeUndefined();expect(result.protocolFees).toEqual([]);
 });

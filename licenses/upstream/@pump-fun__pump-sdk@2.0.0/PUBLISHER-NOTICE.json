@@ -1,0 +1,16 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "@pump-fun/pump-sdk",
+  "version": "2.0.0",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/pump-fun/pump-sdk.git",
+    "type": "git"
+  },
+  "author": {
+    "name": "pump-fun"
+  },
+  "gitHead": "6e3f21dc58e4d73eb8e30359b2e537773d407344",
+  "source": "https://registry.npmjs.org/@pump-fun/pump-sdk/2.0.0",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

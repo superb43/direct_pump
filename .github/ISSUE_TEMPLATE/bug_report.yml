@@ -1,0 +1,39 @@
+name: Bug report
+description: Report an ordinary bug using redacted, synthetic evidence.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 'For signing, authorization, wallet or credential vulnerabilities, use SECURITY.md and private reporting. Never attach private keys, tokens, pairing codes or wallet databases.'
+  - type: input
+    id: version
+    attributes:
+      label: Version and environment
+      description: Release/commit, browser/OS, Basic or Pro, supported site, Node version if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps using synthetic data and an unfunded environment. Do not reproduce with real trades.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Verification and redacted evidence
+      description: Relevant tests/log excerpts; identify skipped live/network checks.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed secrets and private financial data, and this is not a confidential vulnerability report.
+          required: true

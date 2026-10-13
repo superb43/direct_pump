@@ -1,0 +1,40 @@
+.pro-onboarding{box-sizing:border-box;width:calc(100% - 32px);max-width:408px;max-height:calc(100dvh - 32px);margin:auto;padding:24px;color:var(--dp-text);background:var(--dp-bg);border:1px solid var(--dp-border);border-radius:12px;overflow:auto;font:14px/1.6 var(--dp-font);box-shadow:0 12px 40px #0004}
+.pro-onboarding::backdrop{background:#0008}
+.pro-onboarding [hidden]{display:none!important}
+.pro-onboarding-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.pro-onboarding section{width:auto;max-width:none;margin:0;padding:0}
+.pro-onboarding h2{margin:0;font-size:20px;line-height:1.3}
+.pro-onboarding h3{margin:24px 0 12px;font-size:17px;line-height:1.4}
+.pro-onboarding p{margin:0 0 24px;font-size:14px;line-height:1.6;color:var(--dp-muted)}
+.pro-onboarding button,.pro-onboarding input,.pro-onboarding select{box-sizing:border-box;font:inherit;color:var(--dp-text);background:var(--dp-surface);border:1px solid var(--dp-border);border-radius:var(--dp-radius-control);max-width:100%;min-width:0}
+.pro-onboarding button{min-height:44px;padding:12px;cursor:pointer}
+.pro-onboarding button:hover:enabled{background:var(--dp-hover)}
+.pro-onboarding button:disabled{opacity:.48;cursor:default}
+.pro-onboarding button:focus-visible,.pro-onboarding input:focus-visible,.pro-onboarding a:focus-visible{outline:2px solid var(--dp-focus);outline-offset:2px}
+.pro-onboarding-head button{display:grid;place-items:center;width:44px;flex:0 0 44px;padding:10px}
+.pro-onboarding svg{width:20px;height:20px;flex-shrink:0}
+.pro-onboarding .pro-setup-choice{display:flex;align-items:flex-start;gap:12px;width:100%;text-align:left;padding:16px 12px;margin-bottom:16px}
+.pro-setup-choice svg{margin-top:2px}
+.pro-setup-choice span{display:grid;gap:8px;min-width:0}
+.pro-setup-choice strong{font-size:15px;line-height:1.4}
+.pro-setup-choice small{font-size:13px;line-height:1.5;color:var(--dp-muted)}
+.pro-onboarding [data-setup-explore],.pro-onboarding [data-setup-back]{width:100%;margin-top:8px}
+.pro-onboarding .pro-telegram-link{display:block;padding:12px;text-align:center;background:var(--dp-mint);color:var(--dp-buy-text);border-radius:var(--dp-radius-control);font-weight:600;text-decoration:none;min-height:44px}
+.pro-onboarding .pro-channel-pending{color:var(--dp-text);padding-block:16px;border-block:1px solid var(--dp-border)}
+.pro-onboarding .pro-settings{margin:24px 0 0;padding:0}
+.pro-onboarding .pro-settings-heading{display:block;margin-bottom:24px}
+.pro-onboarding .pro-settings-heading h2{font-size:17px}
+.pro-onboarding .pro-settings-group{display:grid;gap:16px}
+.pro-onboarding label{display:flex;flex-direction:column;gap:8px;font-size:13px}
+.pro-onboarding input{width:100%;padding:12px;min-height:44px}
+.pro-onboarding .pro-settings-actions{display:grid;gap:12px}
+.pro-onboarding .pro-settings-check{display:flex;flex-direction:row;gap:12px;margin:16px 0}
+.pro-onboarding .pro-settings-check input{width:18px;height:18px;min-height:18px;flex:0 0 18px;padding:0;margin-top:2px}
+.pro-onboarding .pro-pairing-help{padding:16px 0;border-block:1px solid var(--dp-border);margin:0}
+.pro-onboarding .pro-pairing-help summary{cursor:pointer;font-size:14px}
+.pro-onboarding .pro-pairing-help p{margin:16px 0}
+.pro-onboarding code{display:block;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.7 var(--dp-mono);padding:12px;background:var(--dp-field);border-radius:var(--dp-radius-control)}
+.pro-onboarding .pro-settings-status{margin:16px 0;overflow-wrap:anywhere;color:var(--dp-text)}
+.pro-onboarding .pro-settings-recipient-review dd{margin:0;overflow-wrap:anywhere}
+@media(max-width:310px){.pro-onboarding{padding:20px 16px}.pro-onboarding section{width:auto;max-width:none;margin:0;padding:0}
+.pro-onboarding h2{font-size:18px}}

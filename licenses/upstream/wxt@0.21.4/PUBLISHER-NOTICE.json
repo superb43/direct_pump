@@ -1,0 +1,17 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "wxt",
+  "version": "0.21.4",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/wxt-dev/wxt.git",
+    "type": "git"
+  },
+  "author": {
+    "name": "Aaron Klinker",
+    "email": "aaronklinker1+wxt@gmail.com"
+  },
+  "gitHead": null,
+  "source": "https://registry.npmjs.org/wxt/0.21.4",
+  "standaloneLicenseFile": "Not included in this published npm package; retain original package notices."
+}

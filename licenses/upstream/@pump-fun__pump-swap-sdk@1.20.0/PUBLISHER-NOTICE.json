@@ -1,0 +1,18 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "@pump-fun/pump-swap-sdk",
+  "version": "1.20.0",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/pump-fun/pump-swap-sdk.git",
+    "type": "git"
+  },
+  "author": {
+    "url": "https://pump.fun",
+    "name": "Pump Fun",
+    "email": "dev@pump.fun"
+  },
+  "gitHead": "0e7ebefd5ce7fbc504ab6198f0642480f8a25446",
+  "source": "https://registry.npmjs.org/@pump-fun/pump-swap-sdk/1.20.0",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

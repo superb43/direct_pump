@@ -9,7 +9,7 @@ export function settleReceipt(
   signatureStatus: { err: unknown; confirmationStatus?: string | null; slot?: number } | null,
   blockHeight: number,
 ): Receipt {
-  if (signatureStatus?.err) return { ...receipt, status: 'FAILED', error: 'The on-chain transaction failed.' };
+  if (signatureStatus?.err) return { ...receipt, status: 'FAILED', error: 'The on-chain transaction failed. Loading failure details…', diagnostic: { stage: 'CHAIN', error: typeof signatureStatus.err === 'string' ? signatureStatus.err : JSON.stringify(signatureStatus.err) } };
   if (signatureStatus && ['confirmed', 'finalized'].includes(signatureStatus.confirmationStatus ?? '')) {
     return { ...receipt, status: 'CONFIRMED', confirmedSlot:signatureStatus.slot??receipt.confirmedSlot, error: undefined };
   }

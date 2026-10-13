@@ -1,0 +1,18 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "@wxt-dev/browser",
+  "version": "0.3.4",
+  "license": "MIT",
+  "repository": {
+    "url": "git+https://github.com/wxt-dev/wxt.git",
+    "type": "git",
+    "directory": "packages/browser"
+  },
+  "author": {
+    "name": "Aaron Klinker",
+    "email": "aaronklinker1+wxt@gmail.com"
+  },
+  "gitHead": null,
+  "source": "https://registry.npmjs.org/@wxt-dev/browser/0.3.4",
+  "standaloneLicenseFile": "Not included in this published npm package; retain original package notices."
+}

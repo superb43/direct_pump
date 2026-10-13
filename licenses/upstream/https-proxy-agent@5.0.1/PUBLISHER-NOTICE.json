@@ -1,0 +1,18 @@
+{
+  "noticeType": "Published package license declaration; not a new grant by Direct Pump",
+  "name": "https-proxy-agent",
+  "version": "5.0.1",
+  "license": "MIT",
+  "repository": {
+    "url": "git://github.com/TooTallNate/node-https-proxy-agent.git",
+    "type": "git"
+  },
+  "author": {
+    "url": "http://n8.io/",
+    "name": "Nathan Rajlich",
+    "email": "nathan@tootallnate.net"
+  },
+  "gitHead": "d0d80cc0482f20495aa8595f802e1a9f3b1b3409",
+  "source": "https://registry.npmjs.org/https-proxy-agent/5.0.1",
+  "standaloneLicenseFile": "Not included in this published npm package. All original package notices must remain with distributed sources."
+}

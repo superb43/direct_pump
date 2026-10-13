@@ -63,6 +63,10 @@ describe('settings validation', () => {
     ]) expect(() => validateSettings({ ...DEFAULT_SETTINGS, ...invalid })).toThrow();
     expect(() => validateSettings({})).toThrow();
   });
+  it('migrates the optional private price socket and accepts only safe WSS endpoints',()=>{
+    expect(validateSettings(DEFAULT_SETTINGS).priceWsUrl).toBe('');expect(validateSettings({...DEFAULT_SETTINGS,priceWsUrl:'wss://prices.test/?key=private'}).priceWsUrl).toContain('wss://prices.test/');
+    for(const priceWsUrl of ['ws://prices.test','https://prices.test','wss://user:password@prices.test','wss://prices.test/#key'])expect(()=>validateSettings({...DEFAULT_SETTINGS,priceWsUrl})).toThrow();
+  });
 });
 
 describe('minimum order recovery', () => {

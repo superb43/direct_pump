@@ -1,0 +1,102 @@
+/* Silver Light: presentation only, with the existing panel contracts. */
+:host {
+  all:initial; display:block; color:var(--dp-text); font:var(--dp-body)/1.5 var(--dp-font);
+  font-feature-settings:'calt','kern','liga','ss03'; color-scheme:dark;
+}
+section { width:100%; max-width:440px; margin:auto; padding:16px; overflow:visible; }
+header { display:flex; justify-content:space-between; align-items:center; gap:12px; min-height:36px; }
+header strong { order:-1; display:flex; align-items:center; gap:9px; font-size:14px; font-weight:600; letter-spacing:-.2px; }
+header strong::before { content:''; width:16px; height:16px; background:url('/icon/32.png') center/contain no-repeat; }
+.icon { width:36px; min-height:36px; padding:8px; }
+.icon svg { display:block; width:18px; height:18px; }
+.token { display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:8px; margin:23px 0 9px; }
+.token-link { display:inline-flex; align-items:center; min-width:0; max-width:100%; gap:7px; padding:0; min-height:32px; border:0; background:transparent; box-shadow:none; text-align:left; }
+.token-ticker { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:24px; line-height:1.2; font-weight:600; letter-spacing:-.6px; font-feature-settings:'liga' 0,'ss02','ss08'; }
+.token-link svg { width:14px; height:14px; flex-shrink:0; color:var(--dp-muted); }
+.token-link:hover:not(:disabled) { background:transparent; box-shadow:none; color:var(--dp-brand); }
+.token-link:disabled { color:var(--dp-text); background:transparent; }
+.token-address-wrap { position:relative; margin-left:auto; min-width:0; }
+.copy-address { display:flex; align-items:center; gap:6px; min-height:30px; padding:4px 6px; border-color:transparent; background:transparent; box-shadow:none; color:var(--dp-muted); }
+.token-address { font:12px/1.5 var(--dp-mono); }
+.copy-address svg { width:14px; height:14px; flex-shrink:0; }
+.copy-feedback { position:absolute; right:0; top:100%; z-index:2; white-space:nowrap; font-size:13px; padding:5px 9px; border-radius:7px; background:#163528; color:#a8f0cc; box-shadow:var(--dp-shadow); }
+.copy-feedback.error { background:#3a2028; color:#ffd0d8; }
+.wallet-row { display:flex; align-items:center; gap:8px; margin:0; min-height:29px; }
+.wallet { color:var(--dp-muted); font-size:13px; overflow-wrap:anywhere; }
+.wallet::before { content:''; display:inline-block; width:5px; height:5px; background:var(--dp-mint); border-radius:50%; margin-right:7px; vertical-align:2px; }
+.connect { flex:1; }
+.wallet-row + .trade-group { margin-top:18px; }
+p { overflow-wrap:anywhere; } small { color:var(--dp-muted); }
+.trade-group { margin-bottom:18px; }
+.trade-group>label { display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px; font-weight:600; }
+.trade-group>label::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--dp-mint); }
+.sell-group>label::before { background:var(--dp-rose); }
+.grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:0 0 8px; }
+.sells { grid-template-columns:repeat(4,minmax(0,1fr)); margin-bottom:0; }
+.buy,.sell { font-size:15px; font-weight:600; font-variant-numeric:tabular-nums lining-nums; }
+.buys .buy { color:var(--dp-mint); background:linear-gradient(180deg,#233c33,#16241f); border-color:#355246; }
+.sells .sell { color:var(--dp-rose); background:linear-gradient(180deg,#3d2d34,#271c23); border-color:#58404b; }
+.buy:active:not(:disabled),.sell:active:not(:disabled) { background:var(--dp-pressed); }
+.custom { display:flex; gap:8px; }
+.custom input { width:100%; min-width:0; font-variant-numeric:tabular-nums; }
+.custom-buy { min-width:70px; color:var(--dp-buy-text); background:linear-gradient(180deg,#98ebc7,#65cc9f); border-color:#91dfb9; }
+.custom-buy:active:not(:disabled) { background:#64c89e; color:var(--dp-buy-text); }
+.buy:disabled,.sell:disabled { color:var(--dp-muted-disabled); background:var(--dp-panel); border-color:var(--dp-border); }
+.amount-error { margin:8px 0 0; font-size:13px; color:var(--dp-rose); }
+.position { position:relative; margin:20px 0 0; padding:15px; border-radius:var(--dp-radius-panel); background:var(--dp-reflection),var(--dp-surface); box-shadow:var(--dp-edge),var(--dp-shadow); }
+.position div { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 10px; padding:4px 0; font-size:13px; }
+.position span { color:var(--dp-muted); }
+.position strong { min-width:0; max-width:100%; margin-left:auto; overflow-wrap:anywhere; text-align:right; font-size:15px; font-weight:550; font-variant-numeric:tabular-nums lining-nums; }
+.position .position-value { font-size:24px; letter-spacing:-.6px; font-weight:600; }
+.position .position-pnl { font-size:16px; }
+.position small { display:block; font-size:13px; margin-top:6px; overflow-wrap:anywhere; }
+.holdings { position:relative; margin-top:20px; }
+.holdings summary { display:flex; align-items:center; min-height:32px; padding-right:42px; color:var(--dp-text); font-size:14px; font-weight:550; }
+.holdings-tools { position:absolute; top:0; right:0; }
+.holdings-refresh { width:32px; min-height:32px; padding:7px; }
+.holdings-refresh svg { display:block; width:16px; height:16px; }
+.holdings-list { max-height:216px; overflow-y:auto; }
+.holdings-row { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:52px; padding:11px 0; border:0; border-bottom:1px solid var(--dp-border-soft); border-radius:0; background:transparent; box-shadow:none; text-align:left; font-size:14px; }
+.holdings-row:hover:not(:disabled) { background:#151a22; box-shadow:none; }
+.holdings-row:disabled { background:transparent; }
+.holdings-row>span { min-width:0; max-width:56%; text-align:right; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.holdings-row .holding-identity { flex:1; text-align:left; }
+.holding-identity strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:550; }
+.holding-age,.holdings-row small { display:block; font-size:13px; font-weight:400; }
+.holding-age { color:var(--dp-muted); }
+.holdings-row>span>span { display:block; }
+.holdings-note { display:block; margin-top:8px; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.status { display:flex; align-items:flex-start; flex-wrap:wrap; gap:4px 10px; margin:0; padding:11px 12px; border:1px solid var(--dp-border-soft); border-radius:10px; background:linear-gradient(135deg,#1a2029,#101317); color:var(--dp-muted); font-size:14px; line-height:1.5; }
+.status.success { color:#a7ebc9; background:linear-gradient(135deg,#20392d,#112019); border-color:#3b6650; }
+.status.error { color:#ffd0d8; background:linear-gradient(135deg,#402b33,#25171e); border-color:#74505d; }
+.status.pending { display:flex; align-items:flex-start; gap:8px; color:var(--dp-brand); border-color:#3c506b; }
+.status.pending::before { content:''; flex:0 0 14px; width:14px; height:14px; margin-top:3px; border:2px solid #566781; border-top-color:var(--dp-brand); border-radius:50%; animation:status-spin .8s linear infinite; }
+@keyframes status-spin { to { transform:rotate(360deg); } }
+.status-text { flex:1; min-width:0; }
+.explorer { margin-left:auto; white-space:nowrap; font-size:13px; }
+footer { margin-top:20px; }
+.savings { padding:14px 15px; border-radius:var(--dp-radius-panel); background:linear-gradient(125deg,#222c3a,#14181f 65%,#19202a); box-shadow:var(--dp-edge),var(--dp-shadow); }
+.savings-header { display:flex; align-items:center; gap:4px; font-size:13px; }
+.savings-header span { flex:1; color:#c6d1e0; }
+.savings-header strong { max-width:48%; text-align:right; overflow-wrap:anywhere; color:var(--dp-text); font-size:22px; font-weight:550; font-variant-numeric:tabular-nums; letter-spacing:-.4px; }
+.savings-details { min-height:28px; margin-top:7px; padding:0; border:0; border-radius:4px; background:transparent; box-shadow:none; color:var(--dp-brand); font-size:13px; }
+.savings-details:hover:not(:disabled) { box-shadow:none; background:transparent; text-decoration:underline; }
+@media(max-width:360px) {
+  section { padding:14px; }
+  .position,.savings { padding:12px; }
+  .status.error .status-text { flex-basis:100%; }
+  .position .position-value { font-size:22px; }
+  .token-address-wrap { margin-left:0; }
+}
+@media(prefers-reduced-motion:reduce) { .status.pending::before { animation:none; } }
+/* One trading surface; mode swaps the wallet and ticket together. */
+.pro-switch{font-size:12px;min-height:32px;padding:4px 8px;white-space:nowrap;border:1px solid var(--dp-border);border-radius:6px;background:var(--dp-panel);color:var(--dp-muted)}
+.pro-switch[aria-checked=true]{color:var(--dp-text);border-color:var(--dp-brand);background:var(--dp-hover)}
+.pro-container{min-width:0}.manual-panel[hidden],.pro-container[hidden],.pro-switch[hidden]{display:none!important}
+.pro-mode-error{margin:12px 0;padding:10px;border:1px solid var(--dp-rose);border-radius:6px}.pro-mode-status{margin:0 0 8px;color:var(--dp-text);font-size:13px}.pro-mode-retry{min-height:42px;font-size:13px}
+
+.sol-icon { display:inline-block; width:18px; height:18px; flex:0 0 18px; object-fit:contain; vertical-align:middle; }
+.asset-value { display:inline-flex; align-items:center; gap:6px; }
+.buys .buy { display:flex; align-items:center; justify-content:center; gap:6px; }
+
+.panel-body:has(.pro-container:not([hidden]) .pro-panel:is([data-destination=wallet],[data-destination=settings]))>.token{display:none}

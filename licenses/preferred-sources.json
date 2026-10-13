@@ -1,0 +1,22 @@
+[
+  {
+    "name": "rpc-websockets",
+    "version": "9.3.9",
+    "url": "https://codeload.github.com/elpheria/rpc-websockets/tar.gz/af8980776b55c2320b790556f775266fd5afc3ce",
+    "sha256": "afa61746aac88e804d0509d01f996ffa66c1bc7214ff7613bafbae5fc4698245",
+    "sourceRevision": "af8980776b55c2320b790556f775266fd5afc3ce",
+    "repositoryVersion": "9.3.9",
+    "verified": true
+  },
+  {
+    "name": "@raydium-io/raydium-sdk-v2",
+    "version": "0.2.73-alpha",
+    "url": "https://codeload.github.com/raydium-io/raydium-sdk-V2/tar.gz/cc33ec28a8921a35609e83293e9e07ad830b0779",
+    "sha256": "3652f7d54caf495b74a958fd821a013af99bfb141df8b6fb7670983a112c4006",
+    "sourceRevision": "cc33ec28a8921a35609e83293e9e07ad830b0779",
+    "repositoryVersion": "0.2.73-alpha",
+    "verified": true,
+    "sourceFiles": 129,
+    "mismatchCount": 0
+  }
+]

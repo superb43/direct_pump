@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SITE_CONTEXTS, TEST_MINT } from './fixtures/site-contexts';
 import type { PageTarget } from '../src/model';
+import { overlayCommand } from '../src/chart-overlay-contract';
 
 const mocks = vi.hoisted(() => ({ listener: undefined as unknown, send: vi.fn(), hints: vi.fn(), price: undefined as string | undefined }));
 vi.mock('wxt/browser', () => ({ browser: { runtime: { id: 'test-extension', getURL: (path: string) => `chrome-extension://test-extension${path}`, sendMessage: mocks.send, onMessage: { addListener: (fn: unknown) => { mocks.listener = fn; }, removeListener: vi.fn() } } } }));
@@ -25,6 +26,19 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe.each(SITE_CONTEXTS)('$site panel relay contract', ({ target }) => {
+  it('relays minimal chart display only from the native panel and clears drift', async () => {
+    vi.stubGlobal('location', { href: target.pageUrl, origin: new URL(target.pageUrl).origin });
+    const post = vi.fn(); vi.stubGlobal('window', { postMessage: post }); await start();
+    const reply = vi.fn(); listen({ type: 'PANEL_CONTEXT' }, reply);
+    const current = reply.mock.calls[0]![0].target;
+    const command = overlayCommand(current, { mint: TEST_MINT, wallet: 'private-wallet', priceUsd: '1', marketCapUsd: '1000', supplyRaw: '1000', decimals: 0, balanceRaw: '10', updatedAt: Date.now() });
+    const message = { type: 'PANEL_CHART_ENTRY', command };
+    listen(message, reply, { ...sender, url: target.pageUrl }); expect(post).not.toHaveBeenCalled();
+    listen(message, reply); expect(post).toHaveBeenLastCalledWith(command, new URL(target.pageUrl).origin);
+    expect(JSON.stringify(post.mock.calls)).not.toContain('private-wallet'); expect(mocks.send).not.toHaveBeenCalled();
+    listen({ ...message, command: { ...command, key: 'stale-target' } }, reply);
+    expect(post).toHaveBeenLastCalledWith(expect.objectContaining({ entry: null }), new URL(target.pageUrl).origin);
+  });
   it('relays buy and sell through the same bound context and rejects stale pages', async () => {
     vi.stubGlobal('location', { href: target.pageUrl }); await start();
     const reply = vi.fn(); listen({ type: 'PANEL_CONTEXT' }, reply);

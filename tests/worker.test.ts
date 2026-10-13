@@ -6,16 +6,17 @@ import { SITE_CONTEXTS } from './fixtures/site-contexts';
 
 const mocks = vi.hoisted(() => ({
   data: {} as Record<string, unknown>,
-  listener: undefined as unknown,
+  listener: undefined as unknown, portListener:undefined as unknown,
+  stream:vi.fn(),accounts:vi.fn(),change:undefined as unknown,state:undefined as unknown,streamLive:false,usd:vi.fn(),
   currentUrl: '',
-  build: vi.fn(), send: vi.fn(), connect: vi.fn(), prepare: vi.fn(), inspect: vi.fn(), frameUrl: vi.fn(), reconcile: vi.fn(), restore: vi.fn(), switch: vi.fn(), token: vi.fn(), openWindow: vi.fn(), openTab:vi.fn(), history:vi.fn(),position:vi.fn(), fees: vi.fn(), totals: vi.fn(), record: vi.fn(), archive: vi.fn(),
+  build: vi.fn(), send: vi.fn(), connect: vi.fn(), prepare: vi.fn(), inspect: vi.fn(), frameUrl: vi.fn(), reconcile: vi.fn(), restore: vi.fn(), switch: vi.fn(), token: vi.fn(), openWindow: vi.fn(), openTab:vi.fn(), history:vi.fn(),position:vi.fn(),balances:vi.fn(),quote:vi.fn(),notify:vi.fn(), symbol:vi.fn(), fees: vi.fn(), totals: vi.fn(), record: vi.fn(), archive: vi.fn(),
 }));
 
 vi.mock('wxt/browser', () => ({ browser: {
-  runtime: { id: 'test-extension', getURL: (path: string) => `chrome-extension://test-extension${path}`, onMessage: { addListener: (listener: unknown) => { mocks.listener = listener; } } },
+  runtime: { id: 'test-extension', getURL: (path: string) => `chrome-extension://test-extension${path}`, sendMessage:mocks.notify,onConnect:{addListener:(listener:unknown)=>{mocks.portListener=listener;}}, onMessage: { addListener: (listener: unknown) => { mocks.listener = listener; } } },
   tabs: { create:mocks.openTab, get: async () => ({ url: mocks.currentUrl }), query: async () => [], sendMessage: vi.fn() },
   windows: { create: mocks.openWindow },
-  storage: { local: {
+  storage: { onChanged:{addListener:vi.fn()}, local: {
     get: async (key: string) => ({ [key]: mocks.data[key] }),
     set: async (values: Record<string, unknown>) => { Object.assign(mocks.data, values); },
   } },
@@ -25,8 +26,13 @@ vi.mock('../src/hybrid', () => ({ buildHybridTrade: mocks.build }));
 vi.mock('../src/phantom', () => ({ connectPhantom: mocks.connect, sendWithPhantom: mocks.send, preparePhantom: mocks.prepare, inspectPhantom: mocks.inspect, currentFrameUrl: mocks.frameUrl, restorePhantom: mocks.restore, switchPhantom: mocks.switch }));
 vi.mock('../src/reconcile', () => ({ reconcileMissingSignature: mocks.reconcile }));
 vi.mock('../src/fee-receipt', () => ({ verifyFeeReceipt:mocks.fees, pendingFees:(note:string,state='PENDING')=>({state,note,protocolFees:[],zeroExtraFeesVerified:false}) }));
-vi.mock('../src/ledger', () => ({ readSavings:mocks.totals, recordVerifiedTrade:mocks.record, archiveReceipt:mocks.archive, receiptBySignature:async()=>undefined, unauditedReceipts:async()=>[], allReceipts:mocks.history }));
-vi.mock('../src/position',()=>({readPosition:mocks.position}));
+vi.mock('../src/ledger', () => ({ readSavings:mocks.totals, recordVerifiedTrade:mocks.record, archiveReceipt:mocks.archive, receiptBySignature:async()=>undefined, unauditedReceipts:async()=>[], allReceipts:mocks.history, cacheReceiptSymbol:vi.fn() }));
+vi.mock('../src/usd-price',()=>({currentSolUsd:mocks.usd,solUsdSnapshot:vi.fn(async()=>undefined),solUsdRetryAt:()=>0}));
+vi.mock('../src/position',()=>({readPosition:mocks.position,quotePosition:mocks.quote}));
+vi.mock('../src/portfolio-balances',()=>({readPortfolioBalances:mocks.balances}));
+vi.mock('../src/worker/price-accounts',()=>({priceAccounts:mocks.accounts}));
+vi.mock('../src/worker/price-stream',()=>({DEFAULT_PRICE_WS:'wss://api.mainnet-beta.solana.com',createPriceStream:mocks.stream}));
+vi.mock('../src/token-metadata',async original=>({...await original<typeof import('../src/token-metadata')>(),tokenSymbol:mocks.symbol}));
 vi.mock('../src/token-info', () => ({ readTokenInfo: mocks.token }));
 
 const mint = '7LSsEoJGhLeZzGvDofTdNg7M3JttxQqGWNLo6vWMpump';
@@ -42,10 +48,165 @@ async function invoke(request: WorkerRequest, frameId = 0, senderUrl = pageUrl):
   return new Promise(resolve => listener(request, { id: 'test-extension', frameId, tab: { id: 1 }, documentId: 'document-1', url: senderUrl }, resolve));
 }
 
-afterEach(() => vi.restoreAllMocks());
+it.each(SITE_CONTEXTS)('$site portfolio stays private and delivers balances before the exit quote',async(context)=>{
+ const receipt:Receipt={wallet,mint:context.target.mintHint??context.target.address,symbol:'SI',venue:'PUMP_SWAP',side:'BUY',pageUrl:context.target.pageUrl,message:'',blockhash:'',lastValidBlockHeight:1,createdAt:Date.now(),status:'CONFIRMED'};
+ mocks.history.mockResolvedValue([receipt]);
+ const row={holding:{mint:receipt.mint,symbol:'SI',pageUrl:context.target.pageUrl,position:{wallet,mint:receipt.mint,balanceRaw:'10',decimals:6,supplyRaw:'10000',updatedAt:Date.now()}},target:{...context.target,mintHint:receipt.mint},quoteReady:true};
+ mocks.balances.mockResolvedValue([row]);let price!:(value:unknown)=>void;mocks.quote.mockImplementation(()=>new Promise(resolve=>{price=resolve;}));
+ expect((await invoke({type:'PORTFOLIO',wallet},0,context.target.pageUrl)).ok).toBe(false);
+ expect((await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/settings.html')).ok).toBe(false);
+ const response=await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');
+ expect(response.ok&&response.portfolio?.holdings).toMatchObject([{mint:receipt.mint,position:{balanceRaw:'10'},pricingPending:true}]);
+ await vi.waitFor(()=>expect(mocks.quote).toHaveBeenCalledOnce());price({...row.holding.position,expectedExitLamports:'1000000000'});
+ await vi.waitFor(()=>expect(mocks.notify).toHaveBeenCalledWith({type:'PORTFOLIO_UPDATED',wallet}));
+ const cached=await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/dashboard.html');
+ expect(cached.ok&&cached.portfolio?.holdings[0]?.position?.expectedExitLamports).toBe('1000000000');expect(mocks.balances).toHaveBeenCalledOnce();expect(mocks.position).not.toHaveBeenCalled();
+});
+it('reports a balance service failure without claiming zero holdings or repeating blank token rows',async()=>{
+ mocks.balances.mockResolvedValue([{holding:{mint,error:'RPC failed [RPC]'},target,quoteReady:false}]);
+ const sender='chrome-extension://test-extension/dashboard.html';
+ const response=await invoke({type:'PORTFOLIO',wallet},0,sender);
+ expect(response.ok&&response.portfolio).toMatchObject({holdings:[],balanceError:'RPC failed [RPC]',updatedAt:0});
+ await invoke({type:'PORTFOLIO',wallet},0,sender);expect(mocks.balances).toHaveBeenCalledOnce();expect(mocks.quote).not.toHaveBeenCalled();
+});
+it('coalesces balance refreshes and keeps a wallet with an unresolved order locked',async()=>{
+ let resolve!:(value:unknown)=>void;mocks.balances.mockImplementation(()=>new Promise(r=>{resolve=r;}));
+ const sender='chrome-extension://test-extension/dashboard.html';
+ const first=invoke({type:'PORTFOLIO',wallet},0,sender);await vi.waitFor(()=>expect(mocks.balances).toHaveBeenCalledOnce());
+ const second=invoke({type:'PORTFOLIO',wallet,refresh:true},0,sender);for(let i=0;i<20;i++)await Promise.resolve();resolve([]);await first;await second;expect(mocks.balances).toHaveBeenCalledOnce();
+ mocks.data[`receipt:${wallet}`]={wallet,mint,status:'UNKNOWN'};const locked=await invoke({type:'PORTFOLIO',wallet,refresh:true},0,sender);expect(locked.ok).toBe(false);expect(mocks.balances).toHaveBeenCalledOnce();
+});
+it('does not publish a balance read if an unresolved order starts while it is running',async()=>{
+ let resolve!:(value:unknown)=>void;mocks.balances.mockImplementation(()=>new Promise(r=>{resolve=r;}));
+ const reading=invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');await vi.waitFor(()=>expect(mocks.balances).toHaveBeenCalledOnce());
+ mocks.data[`receipt:${wallet}`]={wallet,mint,status:'SUBMITTED'};resolve([]);
+ const response=await reading;expect(response.ok&&response.portfolio?.balanceError).toContain('Retrying automatically');expect(mocks.quote).not.toHaveBeenCalled();
+});
+it('preserves last confirmed balances as stale and backs off after an RPC failure',async()=>{
+ const row={holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:false};
+ mocks.balances.mockResolvedValueOnce([row]).mockRejectedValue(Error('RPC unavailable'));
+ const sender='chrome-extension://test-extension/dashboard.html';await invoke({type:'PORTFOLIO',wallet},0,sender);
+ const response=await invoke({type:'PORTFOLIO',wallet,refresh:true},0,sender);
+ expect(response.ok&&response.portfolio).toMatchObject({balanceError:'RPC unavailable',holdings:[{position:{balanceRaw:'10'}}]});
+ const once=Date.now();await invoke({type:'PORTFOLIO',wallet},0,sender);expect(mocks.balances).toHaveBeenCalledTimes(2);
+ vi.spyOn(Date,'now').mockReturnValue(once+5_100);const retry=await invoke({type:'PORTFOLIO',wallet},0,sender);
+ expect(retry.ok&&retry.portfolio?.nextRefreshAt).toBe(once+15_100);expect(mocks.balances).toHaveBeenCalledTimes(3);
+});
+it('retains captured historical USD and the specific chain failure when a later audit RPC fails',async()=>{
+ const usd={priceMicros:'120000000',capturedAt:1000,source:'Coinbase 1m candle' as const};
+ mocks.data[`receipt:${wallet}`]={wallet,mint,status:'FAILED',signature:'known',error:'Slippage limit exceeded',diagnostic:{stage:'CHAIN',code:6004,error:'ExceededSlippage'},feeReceipt:{usd}};
+ mocks.fees.mockRejectedValue(Error('RPC unavailable'));
+ const response=await invoke({type:'VERIFY_FEES',wallet,signature:'known'},0,'chrome-extension://test-extension/sidepanel.html');
+ expect(response.ok&&response.receipt).toMatchObject({status:'FAILED',error:'Slippage limit exceeded',diagnostic:{code:6004},feeReceipt:{state:'UNAVAILABLE',usd,zeroExtraFeesVerified:false}});
+ expect(mocks.record).not.toHaveBeenCalled();
+});
+
+function pricePort(url='chrome-extension://test-extension/sidepanel.html'){
+ const message:((value:any)=>void)[]=[],disconnect:(()=>void)[]=[];
+ const port={name:'portfolio-prices',sender:{id:'test-extension',url},onMessage:{addListener:(fn:(value:any)=>void)=>message.push(fn)},onDisconnect:{addListener:(fn:()=>void)=>disconnect.push(fn)},disconnect:vi.fn(()=>{for(const fn of disconnect)fn();})};
+ (mocks.portListener as (port:unknown)=>void)(port);
+ return {port,send:(value:unknown)=>message[0]!(value)};
+}
+it('allows price watches only from private views and tears down the shared stream with the last viewer',async()=>{
+ const row={holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:true};mocks.balances.mockResolvedValue([row]);
+ const blocked=pricePort(pageUrl);blocked.send({type:'WATCH',wallet});await vi.waitFor(()=>expect(blocked.port.disconnect).toHaveBeenCalled());expect(mocks.stream).not.toHaveBeenCalled();
+ const panel=pricePort(),dashboard=pricePort('chrome-extension://test-extension/dashboard.html');panel.send({type:'WATCH',wallet});dashboard.send({type:'WATCH',wallet});
+ await vi.waitFor(()=>expect(mocks.stream).toHaveBeenCalledOnce());await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');
+ await vi.waitFor(()=>expect(mocks.accounts).toHaveBeenCalledOnce());const stream=mocks.stream.mock.results[0]!.value;
+ panel.port.disconnect();expect(stream.destroy).not.toHaveBeenCalled();dashboard.port.disconnect();expect(stream.destroy).toHaveBeenCalledOnce();
+});
+it('refreshes a websocket-dirty quote before 15s and reads price snapshots without extra balance calls',async()=>{
+ const usd={priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot' as const};
+ const row={holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now(),costBasisSolLamports:'1000'}},target,quoteReady:true};mocks.balances.mockResolvedValue([row]);
+ mocks.quote.mockImplementation(async(_rpc,_target,_owner,_settings,position)=>({...position,updatedAt:Date.now(),expectedExitLamports:'1000000000',solUsd:usd}));
+ const watcher=pricePort();watcher.send({type:'WATCH',wallet});await vi.waitFor(()=>expect(mocks.stream).toHaveBeenCalledOnce());await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');
+ await vi.waitFor(()=>expect(mocks.quote).toHaveBeenCalledOnce());await vi.waitFor(()=>expect(mocks.notify).toHaveBeenCalled());
+ mocks.streamLive=true;(mocks.state as ()=>void)();(mocks.change as (address:string,slot:number)=>void)('pool',200);
+ await vi.waitFor(()=>expect(mocks.quote).toHaveBeenCalledTimes(2),{timeout:5000});
+ const prices=await invoke({type:'PORTFOLIO_PRICES',wallet},0,'chrome-extension://test-extension/dashboard.html');
+ expect(prices.ok&&prices.portfolio?.holdings[0]).toMatchObject({priceMode:'LIVE',position:{balanceRaw:'10',expectedExitLamports:'1000000000'}});expect(mocks.balances).toHaveBeenCalledOnce();
+ expect((await invoke({type:'PORTFOLIO_PRICES',wallet},0,pageUrl)).ok).toBe(false);watcher.port.disconnect();
+});
+it('falls back to 3s quotes while websocket subscriptions are unavailable',async()=>{
+ vi.useFakeTimers();const usd={priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot' as const};
+ mocks.balances.mockResolvedValue([{holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:true}]);
+ mocks.quote.mockImplementation(async(_rpc,_target,_owner,_settings,position)=>({...position,expectedExitLamports:'1000000000',solUsd:usd,updatedAt:Date.now()}));
+ const watcher=pricePort();watcher.send({type:'WATCH',wallet});for(let i=0;i<30;i++)await Promise.resolve();await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');
+ await vi.advanceTimersByTimeAsync(200);expect(mocks.quote).toHaveBeenCalledOnce();await vi.advanceTimersByTimeAsync(3000);expect(mocks.quote).toHaveBeenCalledTimes(2);expect(mocks.balances).toHaveBeenCalledOnce();
+ const prices=await invoke({type:'PORTFOLIO_PRICES',wallet},0,'chrome-extension://test-extension/sidepanel.html');expect(prices.ok&&prices.portfolio?.holdings[0]?.priceMode).toBe('POLLING');watcher.port.disconnect();vi.useRealTimers();
+});
+it('discards a delayed old-quantity estimate after a confirmed balance change',async()=>{
+ const usd={priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot' as const};let amount='10',release!:(value:any)=>void;
+ mocks.balances.mockImplementation(async()=>[{holding:{mint,position:{wallet,mint,balanceRaw:amount,decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:true}]);
+ mocks.quote.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve;})).mockImplementation(async(_rpc,_target,_owner,_settings,position)=>({...position,expectedExitLamports:'2000000000',solUsd:usd}));
+ await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');await vi.waitFor(()=>expect(mocks.quote).toHaveBeenCalledOnce());amount='20';
+ await invoke({type:'PORTFOLIO',wallet,refresh:true},0,'chrome-extension://test-extension/sidepanel.html');release({wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now(),expectedExitLamports:'9999999999',solUsd:usd});
+ await vi.waitFor(()=>expect(mocks.quote).toHaveBeenCalledTimes(2),{timeout:5000});await vi.waitFor(async()=>{const prices=await invoke({type:'PORTFOLIO_PRICES',wallet},0,'chrome-extension://test-extension/sidepanel.html');expect(prices.ok&&prices.portfolio?.holdings[0]?.position).toMatchObject({balanceRaw:'20',expectedExitLamports:'2000000000'});});
+});
+it('stops dust subscriptions and fast quotes, then restores holdings when the slow revaluation reaches $0.1',async()=>{
+ mocks.usd.mockImplementation(()=>({priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot'}));
+ vi.useFakeTimers();let expected='500000';
+ const usd={priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot' as const};
+ mocks.balances.mockImplementation(async()=>[{holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:true}]);
+ mocks.quote.mockImplementation(async(_rpc,_target,_owner,_settings,position)=>({...position,expectedExitLamports:expected,solUsd:usd,updatedAt:Date.now()}));
+ const watcher=pricePort();watcher.send({type:'WATCH',wallet});for(let i=0;i<30;i++)await Promise.resolve();
+ const sender='chrome-extension://test-extension/sidepanel.html';await invoke({type:'PORTFOLIO',wallet},0,sender);await vi.advanceTimersByTimeAsync(200);
+ expect(mocks.quote).toHaveBeenCalledOnce();expect(mocks.stream.mock.results[0]!.value.update).toHaveBeenLastCalledWith([]);
+ const dust=await invoke({type:'PORTFOLIO',wallet},0,sender);expect(dust.ok&&dust.portfolio?.holdings).toEqual([]);
+ await vi.advanceTimersByTimeAsync(59_000);expect(mocks.quote).toHaveBeenCalledOnce();
+ expected='1000000';await vi.advanceTimersByTimeAsync(1000);expect(mocks.quote).toHaveBeenCalledTimes(2);
+ const restored=await invoke({type:'PORTFOLIO',wallet},0,sender);expect(restored.ok&&restored.portfolio?.holdings[0]?.position?.expectedExitLamports).toBe('1000000');
+ await vi.advanceTimersByTimeAsync(1000);expect(mocks.stream.mock.results[0]!.value.update).toHaveBeenLastCalledWith(['pool']);watcher.port.disconnect();
+});
+it('keeps transient failures subscribed and retries within seconds without a websocket retry storm',async()=>{
+ vi.useFakeTimers();vi.spyOn(Math,'random').mockReturnValue(0.5);
+ mocks.balances.mockImplementation(async()=>[{holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:true}]);
+ const watcher=pricePort();watcher.send({type:'WATCH',wallet});for(let i=0;i<30;i++)await Promise.resolve();
+ const sender='chrome-extension://test-extension/sidepanel.html';await invoke({type:'PORTFOLIO',wallet},0,sender);await vi.advanceTimersByTimeAsync(200);
+ const unknown=await invoke({type:'PORTFOLIO',wallet},0,sender);expect(unknown.ok&&unknown.portfolio?.holdings[0]?.priceMode).toBe('STALE');
+ expect(mocks.stream.mock.results[0]!.value.update).toHaveBeenLastCalledWith(['pool']);
+ for(let slot=1;slot<100;slot++)(mocks.change as (a:string,s:number)=>void)('pool',slot);
+ await vi.advanceTimersByTimeAsync(2999);expect(mocks.quote).toHaveBeenCalledOnce();
+ mocks.quote.mockImplementation(async(_rpc,_target,_owner,_settings,position)=>({...position,quoteIssue:undefined,updatedAt:Date.now(),expectedExitLamports:'1000000000',solUsd:{priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot'}}));
+ await vi.advanceTimersByTimeAsync(1000);expect(mocks.quote).toHaveBeenCalledTimes(2);
+ const recovered=await invoke({type:'PORTFOLIO_PRICES',wallet},0,sender);expect(recovered.ok&&recovered.portfolio?.holdings[0]?.position?.quoteIssue).toBeUndefined();watcher.port.disconnect();
+});
+it('passes the latest websocket slot to SDK account reads instead of pricing older snapshots',async()=>{
+ const bodies:any[]=[];vi.stubGlobal('fetch',vi.fn(async(_url,options)=>{const request=JSON.parse(String(options.body));bodies.push(request);return new Response(JSON.stringify({jsonrpc:'2.0',id:request.id,result:{context:{slot:500},value:{data:['','base64'],owner:PublicKey.default.toBase58(),lamports:1,executable:false,rentEpoch:0}}}),{headers:{'content-type':'application/json'}});}));
+ const usd={priceMicros:'100000000',capturedAt:Date.now(),source:'Coinbase spot' as const};mocks.balances.mockResolvedValue([{holding:{mint,position:{wallet,mint,balanceRaw:'10',decimals:6,supplyRaw:'1000',updatedAt:Date.now()}},target,quoteReady:true}]);
+ mocks.quote.mockImplementation(async(rpc,_target,_owner,_settings,position)=>{await rpc.getAccountInfo(new PublicKey(mint));return {...position,expectedExitLamports:'1000000000',solUsd:usd};});
+ const watcher=pricePort();watcher.send({type:'WATCH',wallet});await vi.waitFor(()=>expect(mocks.stream).toHaveBeenCalledOnce());await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');await vi.waitFor(()=>expect(mocks.notify).toHaveBeenCalled());
+ (mocks.change as (account:string,slot:number)=>void)('pool',400);(mocks.change as (account:string,slot:number)=>void)('pool',500);
+ await vi.waitFor(()=>expect(bodies.some(request=>request.params[1]?.minContextSlot===500)).toBe(true),{timeout:5000});expect(mocks.balances).toHaveBeenCalledOnce();watcher.port.disconnect();
+});
+
+it('shares the estimate between POSITION and PORTFOLIO across three private viewers',async()=>{
+ vi.useFakeTimers();
+ const snapshot={wallet,mint,balanceRaw:'100',decimals:0,supplyRaw:'1000',updatedAt:Date.now()};
+ mocks.position.mockResolvedValue(snapshot);mocks.balances.mockResolvedValue([{holding:{mint,position:snapshot},target,quoteReady:true}]);
+ mocks.quote.mockImplementation(async(_r,_t,_w,_s,p)=>({...p,updatedAt:Date.now(),expectedExitLamports:'1000000000'}));
+ const watchers=[pricePort(),pricePort('chrome-extension://test-extension/dashboard.html'),pricePort()];for(const watcher of watchers)watcher.send({type:'WATCH',wallet});
+ const current=invoke({type:'POSITION',wallet,target}),list=await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');
+ expect(list.ok).toBe(true);await vi.advanceTimersByTimeAsync(200);expect((await current).ok).toBe(true);
+ expect(mocks.quote).toHaveBeenCalledOnce();expect(mocks.stream).toHaveBeenCalledOnce();
+ for(const watcher of watchers)watcher.port.disconnect();
+});
+it('cancels a removed holding even when it had no websocket source',async()=>{
+ vi.useFakeTimers();let release!:(value:unknown)=>void;
+ const snapshot={wallet,mint,balanceRaw:'100',decimals:0,supplyRaw:'1000',updatedAt:Date.now()};
+ mocks.balances.mockResolvedValueOnce([{holding:{mint,position:snapshot},target,quoteReady:true}]).mockResolvedValue([]);
+ mocks.quote.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve;}));
+ const sender='chrome-extension://test-extension/sidepanel.html';await invoke({type:'PORTFOLIO',wallet},0,sender);await vi.advanceTimersByTimeAsync(200);
+ const signal=mocks.quote.mock.calls[0]![7].signal as AbortSignal;expect(signal.aborted).toBe(false);
+ const removed=await invoke({type:'PORTFOLIO',wallet,refresh:true},0,sender);expect(removed.ok&&removed.portfolio?.holdings).toEqual([]);expect(signal.aborted).toBe(true);
+ release({...snapshot,expectedExitLamports:'999999999'});await vi.advanceTimersByTimeAsync(1);
+ const prices=await invoke({type:'PORTFOLIO_PRICES',wallet},0,sender);expect(prices.ok&&prices.portfolio?.holdings).toEqual([]);
+});
+
+afterEach(() => {vi.restoreAllMocks();vi.useRealTimers();vi.unstubAllGlobals();});
 
 beforeEach(async () => {
-  mocks.data = {}; mocks.currentUrl = pageUrl;mocks.position.mockReset();mocks.openTab.mockReset().mockResolvedValue({id:2});mocks.history.mockReset().mockResolvedValue([]);
+  mocks.usd.mockReset().mockReturnValue(undefined);mocks.data = {}; mocks.currentUrl = pageUrl;mocks.streamLive=false;mocks.accounts.mockReset().mockResolvedValue(['pool']);mocks.stream.mockReset().mockImplementation((_url,change,state)=>{mocks.change=change;mocks.state=state;return {update:vi.fn(),destroy:vi.fn(),hasLive:()=>mocks.streamLive};});mocks.position.mockReset();mocks.balances.mockReset().mockResolvedValue([]);mocks.quote.mockReset().mockImplementation(async (_rpc,_target,_wallet,_settings,position)=>({...position,warning:'Quote unavailable',quoteIssue:{kind:'RPC',message:'RPC unavailable',retryable:true}}));mocks.notify.mockReset().mockResolvedValue(undefined);mocks.openTab.mockReset().mockResolvedValue({id:2});mocks.history.mockReset().mockResolvedValue([]);
   mocks.fees.mockReset();mocks.totals.mockReset().mockResolvedValue({volumeUsdMicros:'100000000',savedUsdMicros:'1000000',verifiedTrades:1,pricedTrades:1,unpricedTrades:0,benchmarkBps:100});mocks.record.mockReset().mockResolvedValue(undefined);mocks.archive.mockReset().mockResolvedValue(undefined);
   mocks.build.mockReset().mockResolvedValue(built());
   mocks.send.mockReset().mockResolvedValue({ state: 'NOT_SENT', error: 'Phantom approval was rejected.' });
@@ -55,25 +216,39 @@ beforeEach(async () => {
   mocks.frameUrl.mockReset().mockImplementation(async () => mocks.currentUrl);
   mocks.reconcile.mockReset().mockImplementation(async (_rpc, receipt) => receipt);
   mocks.restore.mockReset().mockResolvedValue(wallet); mocks.switch.mockReset().mockResolvedValue(wallet);
-  mocks.token.mockReset().mockResolvedValue({ mint, symbol: 'TEST' }); mocks.openWindow.mockReset().mockResolvedValue({ id: 2 });
+  mocks.symbol.mockReset().mockResolvedValue('TEST');mocks.token.mockReset().mockResolvedValue({ mint, symbol: 'TEST' }); mocks.openWindow.mockReset().mockResolvedValue({ id: 2 });
   vi.stubGlobal('defineBackground', (main: () => void) => ({ main }));
   const background = await import('../entrypoints/background');
   background.default.main();
 });
 
+it.each(SITE_CONTEXTS)('$site cannot reach Pro execution or diagnostics through the site relay',async({target:siteTarget})=>{
+  mocks.currentUrl=siteTarget.pageUrl;
+  expect((await invoke({type:'PRO',action:'ENABLE'},0,siteTarget.pageUrl)).ok).toBe(false);
+  expect((await invoke({type:'PRO',action:'REQUEST',method:'POST',path:'/v1/resume-engine'},0,siteTarget.pageUrl)).ok).toBe(false);
+  expect((await invoke({type:'DIAGNOSTICS',action:'EXPORT'},0,siteTarget.pageUrl)).ok).toBe(false);
+  expect(mocks.build).not.toHaveBeenCalled();expect(mocks.send).not.toHaveBeenCalled();
+});
+it('reads Pro mode only from native views without opening a trading tab or signing',async()=>{
+  const result=await invoke({type:'PRO',action:'SETTINGS'},0,'chrome-extension://test-extension/sidepanel.html');
+  expect(result.ok).toBe(true);expect(mocks.openTab).not.toHaveBeenCalled();
+  expect((await invoke({type:'PRO',action:'SETTINGS'},0,'chrome-extension://test-extension/pro.html')).ok).toBe(false);
+  expect(mocks.build).not.toHaveBeenCalled();expect(mocks.send).not.toHaveBeenCalled();
+});
+
 describe('worker execution gates', () => {
   it.each(SITE_CONTEXTS)('$site shares one pending read and keeps unresolved orders/private data guarded', async ({ target: siteTarget, source }) => {
-    const startedAt=Date.now();let release!:(value:any)=>void;
+    vi.useFakeTimers();const startedAt=Date.now();let release!:(value:any)=>void;
     mocks.currentUrl=siteTarget.pageUrl;
     mocks.position.mockImplementation(()=>new Promise(resolve=>{release=resolve;}));
     const read:WorkerRequest={type:'POSITION',target:siteTarget,wallet,market:{mint:siteTarget.mintHint??siteTarget.address,observedAt:startedAt,priceUsd:'1',source}};
     const first=invoke(read,0,siteTarget.pageUrl);
     await vi.waitFor(()=>expect(mocks.position).toHaveBeenCalledOnce());
-    vi.spyOn(Date,'now').mockReturnValue(startedAt+6_000);
+    await vi.advanceTimersByTimeAsync(6_000);
     const second=invoke(read,0,siteTarget.pageUrl);
     await Promise.resolve();await Promise.resolve();
     release({wallet,mint:siteTarget.mintHint??siteTarget.address,balanceRaw:'1',decimals:6,supplyRaw:'100',updatedAt:startedAt+6_000});
-    expect((await first).ok&&(await second).ok).toBe(true);expect(mocks.position).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(200);expect((await first).ok&&(await second).ok).toBe(true);expect(mocks.position).toHaveBeenCalledOnce();
     mocks.data[`receipt:${wallet}`]={wallet,mint,venue:'PUMP_CURVE',side:'BUY',pageUrl,message:'',blockhash:'',lastValidBlockHeight:100,createdAt:startedAt,status:'UNKNOWN'};
     expect((await invoke({...request,target:siteTarget},0,siteTarget.pageUrl)).ok).toBe(false);
     expect(mocks.build).not.toHaveBeenCalled();expect(mocks.send).not.toHaveBeenCalled();
@@ -235,19 +410,54 @@ describe('worker execution gates', () => {
     expect(response.ok && response.receipt?.signature).toBe(signature);
   });
 });
-it('separates fast holdings from cached exit quotes and bypasses both on confirmed refresh',async()=>{
- mocks.position.mockImplementation(async(_rpc,_target,_wallet,_settings,market,holdingsOnly)=>({wallet,mint,balanceRaw:holdingsOnly?'200':'100',decimals:0,supplyRaw:'1000',updatedAt:Date.now(),market}));
- await invoke({type:'POSITION',target,wallet});
- const holdings=await invoke({type:'POSITION',target,wallet,holdingsOnly:true});expect(holdings.ok&&holdings.position?.balanceRaw).toBe('200');
- await invoke({type:'POSITION',target,wallet});expect(mocks.position).toHaveBeenCalledTimes(2);
- await invoke({type:'POSITION',target,wallet,refresh:true});expect(mocks.position).toHaveBeenCalledTimes(3);
+it('shares confirmed holdings with exit quotes and coalesces simultaneous confirmed refreshes',async()=>{
+ let balance='100';
+ mocks.position.mockImplementation(async(_rpc,_target,_wallet,_settings,market)=>({wallet,mint,balanceRaw:balance,decimals:0,supplyRaw:'1000',updatedAt:Date.now(),market}));
+ const quoted=await invoke({type:'POSITION',target,wallet});expect(quoted.ok&&quoted.position?.balanceRaw).toBe('100');
+ const holdings=await invoke({type:'POSITION',target,wallet,holdingsOnly:true});expect(holdings.ok&&holdings.position?.balanceRaw).toBe('100');
+ await invoke({type:'POSITION',target,wallet});expect(mocks.position).toHaveBeenCalledOnce();expect(mocks.quote).toHaveBeenCalledOnce();
+ balance='200';const refreshed=await Promise.all([invoke({type:'POSITION',target,wallet,holdingsOnly:true,refresh:true}),invoke({type:'POSITION',target,wallet,refresh:true})]);
+ expect(refreshed.every(r=>r.ok&&r.position?.balanceRaw==='200')).toBe(true);expect(mocks.position).toHaveBeenCalledTimes(2);expect(mocks.quote).toHaveBeenCalledTimes(2);
  expect(mocks.send).not.toHaveBeenCalled();
+});
+it.each(SITE_CONTEXTS)('$site shares one pending confirmed snapshot across holdings and quote readers',async(context)=>{
+ mocks.currentUrl=context.target.pageUrl;mocks.frameUrl.mockResolvedValue(context.target.pageUrl);
+ const resolved=context.target.mintHint??context.target.address;
+ let release!:(value:unknown)=>void;mocks.position.mockImplementation(()=>new Promise(resolve=>{release=resolve;}));
+ const quote=invoke({type:'POSITION',target:context.target,wallet},0,context.target.pageUrl);
+ await vi.waitFor(()=>expect(mocks.position).toHaveBeenCalledOnce());
+ const holdings=invoke({type:'POSITION',target:context.target,wallet,holdingsOnly:true},0,context.target.pageUrl);
+ for(let i=0;i<16;i++)await Promise.resolve();expect(mocks.position).toHaveBeenCalledOnce();expect(mocks.quote).not.toHaveBeenCalled();
+ release({wallet,mint:resolved,balanceRaw:'10',decimals:0,supplyRaw:'1000',updatedAt:Date.now()});
+ const rows=await Promise.all([quote,holdings]);expect(rows.every(r=>r.ok&&r.position?.balanceRaw==='10')).toBe(true);expect(mocks.quote).toHaveBeenCalledOnce();expect(mocks.send).not.toHaveBeenCalled();
+});
+it('rejects a delayed old-quantity quote after a newer confirmed holdings snapshot',async()=>{
+ vi.useFakeTimers();let balance='100',release!:(value:unknown)=>void;
+ mocks.position.mockImplementation(async()=>({wallet,mint,balanceRaw:balance,decimals:0,supplyRaw:'1000',updatedAt:Date.now()}));
+ mocks.quote.mockImplementationOnce(()=>new Promise(resolve=>{release=resolve;}));
+ const old=invoke({type:'POSITION',target,wallet});await vi.advanceTimersByTimeAsync(200);expect(release).toBeDefined();
+ balance='200';const latest=await invoke({type:'POSITION',target,wallet,holdingsOnly:true,refresh:true});expect(latest.ok&&latest.position?.balanceRaw).toBe('200');
+ release({wallet,mint,balanceRaw:'100',decimals:0,supplyRaw:'1000',updatedAt:Date.now(),expectedExitLamports:'1000'});expect((await old).ok).toBe(false);
+ const correction=invoke({type:'POSITION',target,wallet});await vi.advanceTimersByTimeAsync(200);const corrected=await correction;expect(corrected.ok&&corrected.position?.balanceRaw).toBe('200');
 });
 it('uses the confirmed transaction slot as a floor for immediate balance reads',async()=>{
  mocks.data[`receipt:${wallet}`]={wallet,mint,status:'CONFIRMED',confirmedSlot:777};
  mocks.position.mockResolvedValue({wallet,mint,balanceRaw:'200',decimals:0,supplyRaw:'1000',updatedAt:Date.now()});
  await invoke({type:'POSITION',target,wallet,holdingsOnly:true,refresh:true});
  expect(mocks.position.mock.calls[0]![6]).toBe(777);
+});
+it.each(SITE_CONTEXTS)('$site passes the existing Holdings balance proof to the current-position chart path',async({target:siteTarget})=>{
+ mocks.currentUrl=siteTarget.pageUrl;
+ const currentMint=siteTarget.mintHint??siteTarget.address;
+ const position={wallet,mint:currentMint,balanceRaw:'100',decimals:6,supplyRaw:'1000',updatedAt:Date.now(),balanceUpdatedAt:Date.now()};
+ const row={holding:{mint:currentMint,position},target:siteTarget,quoteReady:true,balanceSlot:777};
+ mocks.balances.mockResolvedValue([row]);mocks.position.mockResolvedValue(position);
+ await invoke({type:'PORTFOLIO',wallet},0,'chrome-extension://test-extension/sidepanel.html');
+ await invoke({type:'POSITION',target:siteTarget,wallet,holdingsOnly:true,refresh:true},0,siteTarget.pageUrl);
+ expect(mocks.position.mock.lastCall?.[8].balance).toEqual({position,slot:777,quoteReady:true});
+ row.quoteReady=false;
+ await invoke({type:'POSITION',target:siteTarget,wallet,holdingsOnly:true,refresh:true},0,siteTarget.pageUrl);
+ expect(mocks.position.mock.lastCall?.[8].balance).toEqual({position,slot:777,quoteReady:false});
 });
 
 it('rejects unsupported top frames for public status and open actions',async()=>{
@@ -298,4 +508,15 @@ it('rejects stale exact documents and iframes for targetless status requests',as
  expect((await invoke({type:'STATUS',wallet})).ok).toBe(false);
  mocks.frameUrl.mockResolvedValue(pageUrl);
  expect((await invoke({type:'STATUS',wallet},1)).ok).toBe(false);
+});
+
+
+it('enriches historical receipts with one metadata lookup per mint and retains all records on metadata failure',async()=>{
+ const receipt={wallet,mint,venue:'PUMP_SWAP',side:'BUY',pageUrl,message:'',blockhash:'',lastValidBlockHeight:0,createdAt:1,status:'CONFIRMED',signature:'a'} as Receipt;
+ mocks.history.mockResolvedValue([receipt,{...receipt,signature:'b'}]);mocks.symbol.mockResolvedValue('Topless');
+ const response=await invoke({type:'HISTORY'},0,'chrome-extension://test-extension/dashboard.html');
+ expect(response.ok&&response.receipts?.map(r=>r.symbol)).toEqual(['Topless','Topless']);expect(mocks.symbol).toHaveBeenCalledOnce();
+ mocks.history.mockResolvedValue([{...receipt,mint:wallet,signature:'c'}]);mocks.symbol.mockRejectedValue(new Error('metadata unavailable'));
+ const failed=await invoke({type:'HISTORY'},0,'chrome-extension://test-extension/dashboard.html');
+ expect(failed.ok&&failed.receipts?.length).toBe(1);expect(failed.ok&&failed.receipts?.[0]?.symbol).toBeUndefined();
 });

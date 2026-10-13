@@ -47,6 +47,12 @@ test('heading anchors retain Unicode and duplicates while ignoring fenced exampl
   assert.deepEqual([...headingAnchors('# 설정 안내\n## Same\n## Same\n## Same-1\n~~~text\n## Ignored\n~~~\n```md\n# Also ignored\n```')], ['설정-안내', 'same', 'same-1', 'same-1-1']);
 });
 
+test('links to headings with nested HTML formatting and Markdown labels resolve', async () => {
+  await fixture({ 'README.md': '# Hello <strong><em>World</em></strong>\n## [Setup](https://example.invalid)\n[Hello](#hello-world) [Setup](#setup)' }, root => {
+    assert.equal(checkDocument('README.md', root), 2);
+  });
+});
+
 test('a public checkout needs no private docs and history is not active authority', async () => {
   await fixture({ 'README.md': '# Readme', 'Docs/PROJECT.md': '# Project', 'Docs/DESIGN-HISTORY.md': '[Historical](missing.md)' }, async root => {
     assert.equal(checkDocs(root), 0);

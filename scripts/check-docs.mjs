@@ -18,7 +18,13 @@ function prose(markdown) {
 export function headingAnchors(markdown) {
   const anchors = new Set();
   for (const match of prose(markdown).matchAll(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/gm)) {
-    const slug = match[1].replace(/<[^>]*>/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    let heading = match[1];
+    let previous;
+    do {
+      previous = heading;
+      heading = heading.replace(/<[^>]*>/g, '');
+    } while (heading !== previous);
+    const slug = heading.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
       .toLowerCase().replace(/[^\p{L}\p{M}\p{N}_\-\s]/gu, '').replace(/\s/g, '-');
     let anchor = slug;
     for (let index = 1; anchors.has(anchor); index++) anchor = `${slug}-${index}`;

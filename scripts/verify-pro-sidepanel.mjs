@@ -153,12 +153,12 @@ export default async function verifyProPanel(page, baseUrl='http://127.0.0.1:517
   assert(await page.getByRole('tab',{name:'Settings',exact:true}).getAttribute('aria-selected')==='true'&&await page.locator('[name=expires]').evaluate(element=>element.getRootNode().activeElement===element),'Invalid hidden execution field reveals Settings and receives focus');
   assert((await messages()).filter(request=>request.method==='POST').length===invalidPosts,'Invalid execution settings cannot request a preview');
   await visit('pro=on&pro-buy-orders');await page.locator('[data-protection]>summary').click();await page.locator('[data-add-entry]').click();await page.locator('[data-entry-steps] [data-step-target]').fill('700K');
-  await page.getByRole('tab',{name:'Orders',exact:true}).click();await page.locator('.pro-order').filter({hasText:'0.03'}).getByRole('button',{name:'Edit',exact:true}).click();
+  await page.getByRole('tab',{name:'Orders',exact:true}).click();await page.locator('.pro-order').filter({hasText:'BUY MARKET'}).nth(1).getByRole('button',{name:'Edit',exact:true}).click();
   assert(await page.locator('[data-entry-steps] .pro-step').count()===0,'Editing an unprotected buy clears draft exits');
   await page.locator('[data-review-button]').click();await page.locator('[data-view=trade] [data-review]').waitFor({state:'visible'});
   assert(!(await messages()).filter(request=>request.path==='/v2/preview').at(-1).body.spec.exitStrategy,'Unprotected order edit cannot inherit unrelated draft protection');
-  await page.getByRole('tab',{name:'Orders',exact:true}).click();await page.locator('.pro-order').filter({hasText:'0.02'}).getByRole('button',{name:'Edit',exact:true}).click();assert(await page.locator('[data-entry-steps] .pro-step').count()===1,'Protected order edit restores its original exits');
-  await page.getByRole('tab',{name:'Orders',exact:true}).click();await page.locator('.pro-order').filter({hasText:'0.03'}).getByRole('button',{name:'Edit',exact:true}).click();assert(await page.locator('[data-entry-steps] .pro-step').count()===0,'Switching from a protected to unprotected order clears inherited exits');
+  await page.getByRole('tab',{name:'Orders',exact:true}).click();await page.locator('.pro-order').filter({hasText:'BUY MARKET'}).nth(0).getByRole('button',{name:'Edit',exact:true}).click();assert(await page.locator('[data-entry-steps] .pro-step').count()===1,'Protected order edit restores its original exits');
+  await page.getByRole('tab',{name:'Orders',exact:true}).click();await page.locator('.pro-order').filter({hasText:'BUY MARKET'}).nth(1).getByRole('button',{name:'Edit',exact:true}).click();assert(await page.locator('[data-entry-steps] .pro-step').count()===0,'Switching from a protected to unprotected order clears inherited exits');
   for(const width of [280,360,390,420]){
     await visit('pro=on&pro-orders',width);
     assert(await actionVisible('[data-review-button]'),`${width}px: Market review stays inside the viewport at 42px`);

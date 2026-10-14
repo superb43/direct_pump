@@ -157,12 +157,31 @@ in that bundle (`scripts/build-pro-server.mjs`). This is a scoped native-path
 mitigation; it does not clear the package audit or resolve the other advisories.
 Direct execution of unbundled source has not received the same guarantee.
 
-Full advisory reachability analysis and remediation remain open. Source
-publication and passing CI do not approve a production deployment or binary
-release. Before a binary release, resolve reachable High findings and record any
-accepted advisory-specific exceptions with evidence and independent review under
+### 0.8.0 bundled-release dependency disposition
+
+Reviewed on **2026-10-14** by independent automated code/security and architecture
+review lanes, with evidence recorded in the release PR. Both current audits still
+report the 18 affected entries above; no dependency, lockfile resolution or audit
+suppression was changed. Package remediation remains open.
+
+The following advisory-specific exceptions apply only to the packaged extension
+and `server-dist/cli.mjs` produced by the reviewed build, not direct execution of
+unbundled TypeScript, custom bundles, or an assurance of funded execution safety.
+
+| Advisory | Reviewed runtime evidence and bounded disposition | Re-review trigger |
+| --- | --- | --- |
+| GHSA-3gc7-fjrx-p6mg | Pro build aliases bigint-buffer to its existing pure-JS browser implementation, asserts the exact metafile input, and smoke-checks that native bigint loading is never attempted. The extension uses the browser implementation. The vulnerable native path is excluded from these binaries. | SDK, dependency, bundler, alias, entrypoint or native-loading changes. |
+| GHSA-82x6-q7mm-w9cf | TOML is retained through Anchor, but the identified parse call is its local Anchor.toml workspace getter. Application and reviewed SDK execution do not access Anchor workspace; no request or provider data is parsed as TOML. | Any workspace use, TOML configuration/input, Anchor or bundle/import changes. |
+| GHSA-v5mp-jgw5-2x6j | Same isolated local Anchor workspace parser path; no application TOML parse or remote TOML input was found. | Any workspace use, TOML configuration/input, Anchor or bundle/import changes. |
+| GHSA-528h-pc64-c93x | stream-json is absent from the reviewed Pro bundle inputs and is not used by the browser application's RPC client. The package remains in the installed SDK dependency tree. | Adding streaming JSON, changing SDK/RPC imports, dependencies or bundler. |
+| GHSA-hqr4-qq8f-hg3x | No stream-json/JSONC parser runtime path in the reviewed binaries. | Adding JSONC/streaming parsing or changing SDK/bundle imports. |
+| GHSA-mjw6-4jj6-33hc | No stream-json Assembler runtime path in the reviewed binaries. | Adding stream-json assembly or changing SDK/bundle imports. |
+| GHSA-w5hq-g745-h8pq | The reviewed Web3/jayson browser RPC client uses uuid.v4(), not the affected v3/v5/v6 caller-supplied-buffer APIs. | UUID call-site, RPC client, dependency or bundle/import changes. |
+
+Re-run both audits and reassess each exception on these triggers and before the
+next release. New Critical findings, reachable High findings or unresolved
+signing/key-authority exposure still block publication under
 [the release policy](#routine-maintenance-and-dependency-decisions).
-Re-run the full and production audit after SDK/lockfile changes or new advisories.
 
 ## Architecture
 

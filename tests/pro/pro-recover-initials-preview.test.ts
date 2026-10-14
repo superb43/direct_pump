@@ -18,7 +18,7 @@ it('discovers the smallest sufficient bounded quantity and replaces the placehol
  const f=fixture(),result=await previewRecoverInitials(f.engine,spec());
  expect(result).toMatchObject({status:'READY',targetLamports:'60000'});
  expect(BigInt(result.spec!.amountRaw)).toBeGreaterThanOrEqual(6500n);expect(BigInt(result.spec!.amountRaw)).toBeLessThan(6510n);
- expect(BigInt(result.expectedNetLamports!)).toBeGreaterThanOrEqual(60000n);expect(f.preview.mock.calls.length).toBeLessThanOrEqual(13);
+ expect(BigInt(result.expectedNetLamports!)).toBeGreaterThanOrEqual(60000n);expect(f.preview.mock.calls.length).toBeLessThanOrEqual(14);
 });
 it('blocks reservation shortage instead of substituting an all-token sale',async()=>{
  const f=fixture();f.setReserve(6000n);
@@ -38,4 +38,20 @@ it('rejects changed inventory before preview and changed reservations during quo
 });
 it('rejects non-market/non-sell specs without any read or mutation',async()=>{
  const f=fixture();await expect(previewRecoverInitials(f.engine,{...spec(),side:'BUY'})).rejects.toThrow(/Market sell/);expect(readProPortfolio).not.toHaveBeenCalled();
+});
+
+it('refreshes the sufficient full quantity after slower lower-bound quotes',async()=>{
+ let now=Date.now();const clock=vi.spyOn(Date,'now').mockImplementation(()=>now);
+ try{
+  const f=fixture(),position=await readProPortfolio(f.engine,mint);position.rows[0]!.unrecoveredLamports='95000';
+  f.preview.mockImplementation(async(s)=>{now+=250;return {spec:s,summary:{outputRaw:String(BigInt(s.amountRaw)*10n),quoteAt:now}};});
+  const result=await previewRecoverInitials(f.engine,spec());
+  expect(result).toMatchObject({status:'READY',spec:{amountRaw:'10000'},expectedNetLamports:'95000',quoteAt:now});
+  expect(f.preview).toHaveBeenCalledTimes(14);
+ }finally{clock.mockRestore();}
+});
+it('fails closed when the final sufficient-quantity refresh no longer meets the target',async()=>{
+ const f=fixture(),position=await readProPortfolio(f.engine,mint);position.rows[0]!.unrecoveredLamports='95000';let reads=0;
+ f.preview.mockImplementation(async(s)=>({spec:s,summary:{outputRaw:String(BigInt(s.amountRaw)*10n-(++reads===14?1n:0n)),quoteAt:Date.now()}}));
+ expect(await previewRecoverInitials(f.engine,spec())).toMatchObject({status:'UNAVAILABLE',reason:expect.stringMatching(/target changed/)});
 });

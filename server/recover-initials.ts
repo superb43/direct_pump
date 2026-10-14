@@ -35,6 +35,9 @@ export async function previewRecoverInitials(engine:ProEngine,input:unknown):Pro
    if(result.net>=goal){upper=candidate;best=result;}else lower=candidate;
    candidate=(upper+lower)/2n;
   }
+  // The sufficient upper quote can age while smaller quantities are searched.
+  best=await quote(upper);
+  if(best.net<goal)return unavailable('Recovery target changed. Refresh before submitting.',String(goal));
   // Recheck both reservation and inventory after asynchronous history and quotes.
   const latest=await bounded(()=>engine.market.balances(spec.mint)),latestTotal=latest[spec.mint]??0n,latestReserved=engine.store.reserved(spec.mint);
   if(latestTotal!==total||latestReserved!==reserved||engine.store.locked(engine.wallet)||upper>latestTotal-latestReserved)return unavailable('Balance, reservations or wallet execution changed. Refresh before submitting.',String(goal));

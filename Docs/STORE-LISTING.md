@@ -1,6 +1,6 @@
 # Chrome Web Store submission copy
 
-Prepared for Direct Pump 0.7.9 on October 13, 2026. Reconcile with the final submitted ZIP before use. Operator: Direct pump. Public contact: ctb1729@gmail.com. UI and primary listing language: English. Use an appropriate available category for a finance/trading tool; dashboard categories can change.
+Prepared for Direct Pump 0.8.0 on October 14, 2026. Reconcile with the final submitted ZIP before use. Operator: Direct pump. Public contact: ctb1729@gmail.com. UI and primary listing language: English. Use an appropriate available category for a finance/trading tool; dashboard categories can change.
 
 ## Store listing — package summary
 

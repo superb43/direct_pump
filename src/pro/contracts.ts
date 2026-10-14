@@ -42,7 +42,7 @@ export type ProBalance = { mint: string; decimals: number; totalRaw: string; res
 export type AuthEnvelope = { deviceId: string; timestamp: number; nonce: string; signature: string };
 export type AuthProof = { envelope: AuthEnvelope; method: string; path: string; body: string };
 export type ProReply = { ok: true; data?: unknown } | { ok: false; error: string };
-export type ProRequest = { type: 'PRO'; action: 'SETTINGS' | 'PAIR' | 'ENABLE' | 'DISABLE' | 'REQUEST' | 'EXPORT' | 'DEBUG'; settings?: ProSettings; serverUrl?: string; code?: string; method?: string; path?: string; body?: unknown; target?: PageTarget; expectedSession?:{serverId:string;deviceId:string;wallet:string} };
+export type ProRequest = { type: 'PRO'; action: 'SETTINGS' | 'PREFERENCES_GET' | 'PREFERENCES_SAVE' | 'PAIR' | 'ENABLE' | 'DISABLE' | 'REQUEST' | 'EXPORT' | 'DEBUG'; preferences?: unknown; settings?: ProSettings; serverUrl?: string; code?: string; method?: string; path?: string; body?: unknown; target?: PageTarget; expectedSession?:{serverId:string;deviceId:string;wallet:string} };
 
 export function canonicalJson(value: unknown): string {
   if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);

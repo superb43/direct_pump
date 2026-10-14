@@ -2,9 +2,11 @@ import {validateProSpecV2} from '../src/pro/contracts';
 import { createServer, type IncomingMessage } from 'node:http';
 import { canonicalJson, type AuthProof, type ProBalance } from '../src/pro/contracts';
 import type { ProEngine } from './engine';
-import { sanitizeDiagnostic } from '../src/diagnostics';
+import { sanitizeDiagnostic } from '../src/diagnostics/diagnostics';
 import { SOL } from './store';
 import {readProChartEntry} from './chart-entry';
+import {portfolioConnection,readProPortfolio} from './pro-portfolio';
+import {previewRecoverInitials} from './recover-initials';
 export interface ApiAuth {
     verify(proof: AuthProof): Promise<string>;
     active?(deviceId:string):Promise<boolean>;
@@ -28,11 +30,12 @@ const readBody = async (req: IncomingMessage) => {
 export function createProServer(engine: ProEngine, auth: ApiAuth, serverId: string) {
     let streamCount=0;
     const capabilities = async (): Promise<string[]> => {
-        const chartCapabilities=engine.market&&'connection' in engine.market&&engine.market.connection?['chart-entry-v1']:[];
+        const chartCapabilities=portfolioConnection(engine)?['chart-entry-v1','portfolio-v1']:[];
         if (!auth.capabilities) return [...chartCapabilities,...(auth.withdrawal ? ['withdrawals-v1'] : [])];
         try {
             const values = await auth.capabilities();
-            return [...chartCapabilities,...(Array.isArray(values)?values.filter(v=>['mc-orders-v2','exit-strategies-v2'].includes(v)||v==='withdrawals-v1'&&!!auth.withdrawal):[])];
+            const signerCaps=Array.isArray(values)?values.filter(v=>['mc-orders-v2','exit-strategies-v2'].includes(v)||v==='withdrawals-v1'&&!!auth.withdrawal):[];
+            return [...chartCapabilities,...signerCaps,...(chartCapabilities.includes('portfolio-v1')&&signerCaps.includes('mc-orders-v2')?['recover-initials-preview-v1']:[])];
         } catch {
             engine.store?.diagnostics.log({ component: 'api', type: 'signer.capabilities.unavailable', level: 'warn', code: 'SIGNER_CAPABILITY_UNAVAILABLE' });
             return chartCapabilities;
@@ -76,6 +79,7 @@ export function createProServer(engine: ProEngine, auth: ApiAuth, serverId: stri
                 if((method==='POST'||method==='PATCH')&&(path.startsWith('/v2/')||body.expectedWallet!==undefined)&&body.expectedWallet!==engine.wallet)throw new Error('Reviewed signing wallet changed.');
                 if(path.startsWith('/v2/')){const caps=await capabilities();const requested=body.spec as {kind?:string;exitStrategy?:unknown}|undefined;if(!caps.includes('mc-orders-v2')||(path.includes('strategies')||requested?.kind==='STRATEGY'||requested?.exitStrategy!==undefined)&&!caps.includes('exit-strategies-v2'))throw new Error('Signer MC capabilities unavailable.');}
                 if ((path === '/v2/orders'||path==='/v2/strategies')&&method==='GET')data=engine.store.orders().filter(o=>path==='/v2/orders'||o.spec.kind==='STRATEGY');
+                else if(path==='/v2/recover-initials/preview'&&method==='POST'){if(!(await capabilities()).includes('recover-initials-preview-v1'))throw new Error('Recovery preview unavailable.');data=await previewRecoverInitials(engine,body.spec);}
                 else if(path==='/v2/preview'&&method==='POST')data=await engine.preview(validateProSpecV2(body.spec));
                 else if((path==='/v2/orders'||path==='/v2/strategies')&&method==='POST'){const spec=validateProSpecV2(body.spec);if(path==='/v2/strategies'&&spec.kind!=='STRATEGY')throw new Error('Strategy required.');data=await engine.create(body.orderId,spec,proof);}
                 else if (path === '/v1/health' && method === 'GET')
@@ -114,6 +118,11 @@ export function createProServer(engine: ProEngine, auth: ApiAuth, serverId: stri
                         throw new Error('Diagnostics are unavailable.');
                     data = diagnostics.setDebug(body.minutes);
                     diagnostics.log({ component: 'api', type: 'diagnostics.debug.changed', level: 'info', requestId, details: { duration: body.minutes * 60000 } });
+                }
+                else if(path==='/v1/portfolio'&&method==='GET'){
+                    const mint=url.searchParams.get('mint');
+                    if([...url.searchParams.keys()].some(key=>key!=='mint')||url.searchParams.getAll('mint').length>1||mint!==null&&!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint))throw new Error('Invalid portfolio mint.');
+                    data=await readProPortfolio(engine,mint??undefined);
                 }
                 else if(path==='/v1/chart-entry'&&method==='GET'){
                     const mint=url.searchParams.get('mint');

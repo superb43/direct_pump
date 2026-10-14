@@ -1,6 +1,6 @@
 import type { UsdSnapshot } from './model';
-import { priceMicros } from './savings';
-import {logEvent} from './diagnostics';
+import { priceMicros } from './receipts/savings';
+import {logEvent} from './diagnostics/diagnostics';
 
 let cached: UsdSnapshot | undefined;
 let pending: Promise<UsdSnapshot | undefined> | undefined;

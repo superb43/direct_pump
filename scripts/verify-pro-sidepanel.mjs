@@ -12,6 +12,7 @@ export default async function verifyProPanel(page, baseUrl='http://127.0.0.1:517
   await page.context().route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
   const clear=async()=>{if(page.url().startsWith('http://127.0.0.1'))await page.evaluate(()=>{sessionStorage.removeItem('dp-pro-preview');localStorage.removeItem('dp-pro-mock-storage');localStorage.removeItem('dp-pro-mock-orders');});};
   const visit=async(query,width=390,height=600)=>{
+    if(query.includes('pro=on'))query+='&pro-confirm-market';
     await clear();await page.setViewportSize({width,height});await page.goto(`${baseUrl}/preview/sidepanel.html?${query}`);await page.evaluate(()=>document.fonts.ready);
     if(query.includes('empty')){await page.locator('#empty').waitFor({state:'visible'});return;}
     await page.locator('.token-ticker').waitFor();

@@ -13,6 +13,7 @@ async function validateMint(rpc: Connection, mint: PublicKey) {
   if (info.executable) throw new Error('The page token mint account is executable.');
   assertTokenProgram(info.owner);
   if (!unpackMint(mint, info, info.owner).isInitialized) throw new Error('The page token mint is not initialized.');
+  return info;
 }
 
 function isDiscoveryUnavailable(error: unknown): boolean {
@@ -24,7 +25,7 @@ function routed(mint: PublicKey, account: PublicKey, reason: string) {
 }
 
 /** User settlement is always SOL. Pool quote assets are an internal routing detail. */
-export async function resolveExecution(rpc: Connection, target: PageTarget) {
+export async function resolveExecution(rpc: Connection, target: PageTarget,includeAccountInfo=false) {
   const address = new PublicKey(target.address);
   const wanted = target.kind === 'MINT' ? address : target.mintHint ? new PublicKey(target.mintHint) : undefined;
   const explicitPool = target.kind === 'POOL' ? address : target.poolHint ? new PublicKey(target.poolHint) : undefined;
@@ -35,12 +36,12 @@ export async function resolveExecution(rpc: Connection, target: PageTarget) {
       if (info.executable) throw new Error('The page bonding curve account is executable.');
       if (!wanted) throw new Error('Waiting for the page token mint. Retry when token metadata has loaded.');
       if (!bondingCurvePda(wanted).equals(explicitPool)) throw new Error('The page bonding curve does not match the token mint.');
-      await validateMint(rpc, wanted);
+      const mintInfo=await validateMint(rpc, wanted);
       // The pinned SDK checks the discriminator and supports live curve layouts.
       PUMP_SDK.decodeBondingCurve(info);
       // Preserve the page assertion and its cache/trade identity. Only the
       // verified route lookup uses a mint view of this same token.
-      const route = await resolveRoute(rpc, { ...target, kind: 'MINT', address: wanted.toBase58() });
+      const route = await resolveRoute(rpc, { ...target, kind: 'MINT', address: wanted.toBase58() },{addressInfo:mintInfo,curveInfo:info,includeAccountInfo});
       return route.quoteMint.equals(NATIVE_MINT) ? route : routed(route.mint, route.account, 'NON_SOL_PAIR');
     }
     if (info.owner.equals(DLMM_PROGRAM_ID)) {
@@ -59,7 +60,7 @@ export async function resolveExecution(rpc: Connection, target: PageTarget) {
       // General/inverted PumpSwap pools need whole-route execution. Never pass
       // an inverted pair to a builder whose BUY means quote -> base.
       if (!pool.baseMint.equals(mint) || !canonicalPumpPoolPda(pool.baseMint, pool.quoteMint).equals(explicitPool)) return routed(mint, explicitPool, 'GENERAL_PUMP_SWAP');
-      return { venue: 'PUMP_SWAP' as const, mint, quoteMint: counter, account: explicitPool };
+      return { venue: 'PUMP_SWAP' as const, mint, quoteMint: counter, account: explicitPool,...includeAccountInfo?{accountInfo:info}:{} };
     }
     try {
       const direct = await resolveOtherDirect(rpc, target);
@@ -81,7 +82,7 @@ export async function resolveExecution(rpc: Connection, target: PageTarget) {
   assertTokenProgram(info.owner);
   const curveInfo = await rpc.getAccountInfo(bondingCurvePda(address));
   if (curveInfo?.owner.equals(PUMP_PROGRAM_ID)) {
-    const route = await resolveRoute(rpc, target);
+    const route = await resolveRoute(rpc, target,{addressInfo:info,curveInfo,includeAccountInfo});
     return route.quoteMint.equals(NATIVE_MINT) ? route : routed(route.mint, route.account, 'NON_SOL_PAIR');
   }
   try {

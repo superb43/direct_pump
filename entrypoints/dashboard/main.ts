@@ -1,16 +1,16 @@
 import {browser} from 'wxt/browser';
-import {volumeUsd} from '../../src/savings';
-import {feeTotals,groupedFees,money,feeMoney,subtotalMoney,exactMoney,terminalFeeMoney,terminalFeeTitle,savingsEligible,dailyFeeTotals,type DisplayUnit} from '../../src/dashboard-fees';
-import {receiptSol,receiptUsd,receiptToken} from '../../src/receipt-format';
+import {volumeUsd} from '../../src/receipts/savings';
+import {feeTotals,groupedFees,money,feeMoney,subtotalMoney,exactMoney,terminalFeeMoney,terminalFeeTitle,savingsEligible,dailyFeeTotals,type DisplayUnit} from '../../src/receipts/dashboard-fees';
+import {receiptSol,receiptUsd,receiptToken} from '../../src/receipts/receipt-format';
 import type {Receipt,WorkerRequest,WorkerResponse,PortfolioSnapshot} from '../../src/model';
-import {holdingDisplay,holdingAge,portfolioPriceStatus,mergePortfolioPrices} from '../../src/portfolio';
+import {holdingDisplay,holdingAge,portfolioPriceStatus,mergePortfolioPrices} from '../../src/portfolio/portfolio';
 import {detectPage} from '../../src/sites/catalog';
-import {receiptFailure,receiptDataNote} from '../../src/receipt-details';
+import {receiptFailure,receiptDataNote} from '../../src/receipts/receipt-details';
 import {redactUrls} from '../../src/errors';
 import {createPriceWatch} from '../../src/price-watch';
 import './style.css';
-import {mountDiagnosticView} from '../../src/diagnostic-view';
-import {icon} from '../../src/icons';
+import {mountDiagnosticView} from '../../src/diagnostics/diagnostic-view';
+import {icon} from '../../src/ui/icons';
 import {renderFeeChart} from './chart';
 
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;

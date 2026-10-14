@@ -7,7 +7,7 @@ export default defineConfig({
     name: 'Direct Pump',
     icons: { 16: '/icon/16.png', 32: '/icon/32.png', 48: '/icon/48.png', 128: '/icon/128.png' },
     action: { default_icon: { 16: '/icon/16.png', 32: '/icon/32.png', 48: '/icon/48.png' } },
-    description: 'Buy or sell supported Pump tokens on the current page with Phantom approval.',
+    description: 'Keep the terminal. Skip the terminal fee. Trade Solana on Axiom, GMGN & FOMO Family. Open source.',
     permissions: ['storage', 'scripting', 'sidePanel', 'alarms'],
     optional_permissions: ['notifications'],
     host_permissions: [
@@ -19,5 +19,10 @@ export default defineConfig({
     ],
     optional_host_permissions: ['https://*/*'],
     minimum_chrome_version: '116',
+    commands: Object.fromEntries(['buy', 'sell'].flatMap(side => Array.from({ length: 8 }, (_, index) => {
+      const slot = index + 1;
+      const defaultKey = side === 'buy' && slot <= 2 ? slot : side === 'sell' && slot === 1 ? 3 : side === 'sell' && slot === 4 ? 4 : undefined;
+      return [`pro-${side}-${slot}`, { description: `Pro ${side} preset ${slot}`, ...(defaultKey ? { suggested_key: { default: `Alt+Shift+${defaultKey}` } } : {}) }];
+    }))),
   },
 });

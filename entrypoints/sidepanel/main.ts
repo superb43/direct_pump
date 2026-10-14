@@ -1,3 +1,3 @@
-import { mountTradingWindow } from '../../src/trading-window';
-import '../../src/trading-window.css';
+import { mountTradingWindow } from '../../src/panel/trading-window';
+import '../../src/panel/trading-window.css';
 mountTradingWindow();

@@ -1,10 +1,10 @@
 import { browser } from 'wxt/browser';
 import { readPageHints } from '../src/adapters';
 import { targetKey, SITE_MATCHES } from '../src/sites/catalog';
-import { bindPanelRequest } from '../src/panel-relay';
+import { bindPanelRequest } from '../src/panel/panel-relay';
 import { createPageContextReader, CONTEXT_SAMPLE_MS } from '../src/page-context';
 import type { PanelMessage } from '../src/messages';
-import { CHART_OVERLAY_CHANNEL, validOverlayCommand, type ChartOverlayCommand } from '../src/chart-overlay-contract';
+import { CHART_OVERLAY_CHANNEL, validOverlayCommand, type ChartOverlayCommand } from '../src/chart/chart-overlay-contract';
 
 export default defineContentScript({
   matches: SITE_MATCHES,

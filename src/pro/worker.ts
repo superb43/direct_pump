@@ -1,11 +1,14 @@
 import { browser } from 'wxt/browser';
 import { loadProSettings, saveProSettings, pair, proFetch, streamProEvents } from './client';
-import { exportDiagnostics, setDebugUntil,logEvent } from '../diagnostics';
+import { exportDiagnostics, setDebugUntil,logEvent } from '../diagnostics/diagnostics';
 import { PRO_API_VERSION } from './contracts';
 import type { ProEvent, ProHealth, ProReply, ProSettings, ProRequest } from './contracts';
 import type {Browser} from 'wxt/browser';
+import {defaultPreferences,validateTradingPreferences} from './trading-preferences';
 export type {ProRequest} from './contracts';
 export function allowedProRequest(method: string, path: string): boolean {
+  if(method==='GET'&&/^\/v1\/portfolio(?:\?mint=[1-9A-HJ-NP-Za-km-z]{32,44})?$/.test(path))return true;
+  if(method==='POST'&&path==='/v2/recover-initials/preview')return true;
   if(method==='GET'&&/^\/v1\/chart-entry\?mint=[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(path))return true;
   const latest=method==='GET'?/^\/v1\/events\?latest=([1-9][0-9]{0,2})$/.exec(path):null;
   if(latest)return Number(latest[1])<=500;
@@ -38,6 +41,15 @@ export function createProWorker() {
     try {
       let data: unknown;
       switch (request.action) {
+        case 'PREFERENCES_GET': {
+          const stored=(await browser.storage.local.get('proTradingPreferences')).proTradingPreferences;
+          data=stored===undefined?defaultPreferences():validateTradingPreferences(stored);break;
+        }
+        case 'PREFERENCES_SAVE': {
+          const preferences=validateTradingPreferences(request.preferences);
+          await browser.storage.local.set({proTradingPreferences:preferences});
+          data=preferences;break;
+        }
         case 'SETTINGS': {
           const current = await loadProSettings();
           if (request.settings) {
@@ -112,7 +124,7 @@ export function createProWorker() {
       port.onDisconnect.addListener(()=>{closed=true;controller?.abort();});
     },
     handle(request: ProRequest): Promise<ProReply> {
-      if(request.action==='REQUEST'&&(request.method??'GET')==='GET'&&/^\/v1\/chart-entry\?mint=[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(request.path??''))return chartEntry(request);
+      if(request.action==='REQUEST'&&(request.method??'GET')==='GET'&&/^(?:\/v1\/chart-entry\?mint=[1-9A-HJ-NP-Za-km-z]{32,44}|\/v1\/portfolio(?:\?mint=[1-9A-HJ-NP-Za-km-z]{32,44})?)$/.test(request.path??''))return chartEntry(request);
       // Serialize session changes and mutations, including disable, to preserve intent.
       const result = operation.then(() => execute(request));
       operation = result.then(() => undefined, () => undefined);

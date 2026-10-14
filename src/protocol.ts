@@ -4,6 +4,7 @@ import BN from 'bn.js';
 import {
   Connection, PublicKey, TransactionInstruction, TransactionMessage,
   VersionedTransaction, ComputeBudgetProgram,
+  type AccountInfo,
 } from '@solana/web3.js';
 import {
   NATIVE_MINT, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, unpackMint,
@@ -26,9 +27,10 @@ import type { PageTarget, TradeIntent, Settings } from './model';
 
 const bn = (value: bigint) => new BN(value.toString());
 
-export async function resolveRoute(connection: Connection, target: PageTarget) {
+export type PumpRoute={mint:PublicKey;quoteMint:PublicKey;account:PublicKey;accountInfo?:AccountInfo<Buffer>} & ({venue:'PUMP_CURVE'}|{venue:'PUMP_SWAP'});
+export async function resolveRoute(connection: Connection, target: PageTarget,read?:{addressInfo?:AccountInfo<Buffer>|null;curveInfo?:AccountInfo<Buffer>|null;includeAccountInfo?:boolean}):Promise<PumpRoute> {
   const address = new PublicKey(target.address);
-  const info = await connection.getAccountInfo(address);
+  const info = read?.addressInfo!==undefined?read.addressInfo:await connection.getAccountInfo(address);
   if (!info) throw new Error('No on-chain account was found at this address.');
   if (target.kind === 'POOL') {
     if (!info.owner.equals(PUMP_AMM_PROGRAM_ID)) {
@@ -38,17 +40,17 @@ export async function resolveRoute(connection: Connection, target: PageTarget) {
     if (!canonicalPumpPoolPda(pool.baseMint, pool.quoteMint).equals(address)) {
       throw new Error('Direct PumpSwap execution currently requires a canonical pool.');
     }
-    return { venue: 'PUMP_SWAP' as const, mint: pool.baseMint, quoteMint: pool.quoteMint, account: address };
+    return { venue: 'PUMP_SWAP' as const, mint: pool.baseMint, quoteMint: pool.quoteMint, account: address,...read?.includeAccountInfo?{accountInfo:info}:{} };
   }
   assertTokenProgram(info.owner);
   const curveAddress = bondingCurvePda(address);
-  const curveInfo = await connection.getAccountInfo(curveAddress);
+  const curveInfo = read?.curveInfo!==undefined?read.curveInfo:await connection.getAccountInfo(curveAddress);
   if (!curveInfo || !curveInfo.owner.equals(PUMP_PROGRAM_ID)) {
     throw new Error('This token has no supported Pump bonding curve.');
   }
   const curve = PUMP_SDK.decodeBondingCurve(curveInfo);
   const quoteMint = curve.quoteMint.equals(PublicKey.default) ? NATIVE_MINT : curve.quoteMint;
-  if (!curve.complete) return { venue: 'PUMP_CURVE' as const, mint: address, quoteMint, account: curveAddress };
+  if (!curve.complete) return { venue: 'PUMP_CURVE' as const, mint: address, quoteMint, account: curveAddress,...read?.includeAccountInfo?{accountInfo:curveInfo}:{} };
   const poolAddress = canonicalPumpPoolPda(address, quoteMint);
   const poolInfo = await connection.getAccountInfo(poolAddress);
   if (!poolInfo) throw new Error('The token is graduating. Retry when its pool is ready.');
@@ -56,7 +58,7 @@ export async function resolveRoute(connection: Connection, target: PageTarget) {
   const pool = PUMP_AMM_SDK.decodePool(poolInfo);
   if (!pool.baseMint.equals(address)) throw new Error('Pool token mint does not match.');
   if (!pool.quoteMint.equals(quoteMint)) throw new Error('Graduated pool quote mint does not match the curve.');
-  return { venue: 'PUMP_SWAP' as const, mint: address, quoteMint, account: poolAddress };
+  return { venue: 'PUMP_SWAP' as const, mint: address, quoteMint, account: poolAddress,...read?.includeAccountInfo?{accountInfo:poolInfo}:{} };
 }
 
 export function assertSolQuote(mint: PublicKey): void {
@@ -158,6 +160,7 @@ export async function buildPumpTrade(
   }
   let instructions: TransactionInstruction[];
   let policy: Policy;
+  let displayVaults:{base:PublicKey;quote:PublicKey}|undefined;
   if (route.venue === 'PUMP_CURVE') {
     const online = new OnlinePumpSdk(connection);
     const [global, feeConfig, state] = await Promise.all([
@@ -185,6 +188,7 @@ export async function buildPumpTrade(
     const state = await new OnlinePumpAmmSdk(connection).swapSolanaState(route.account, wallet);
     await validateSwapAccounts(connection, state);
     if (!state.poolKey.equals(route.account) || !state.baseMint.equals(route.mint) || !state.baseTokenProgram.equals(mintInfo.owner) || !state.pool.quoteMint.equals(route.quoteMint) || !state.quoteTokenProgram.equals(quoteInfo.owner) || !canonicalPumpPoolPda(state.baseMint, state.pool.quoteMint).equals(route.account)) throw new Error('Pool token information changed.');
+    displayVaults={base:state.pool.poolBaseTokenAccount,quote:state.pool.poolQuoteTokenAccount};
     let minimum: bigint;
     if (intent.side === 'BUY') {
       const quote = buyQuoteInput({ quote: bn(input), slippage: 0, baseReserve: state.poolBaseAmount, quoteReserve: state.poolQuoteAmount, virtualQuoteReserves: state.pool.virtualQuoteReserves, globalConfig: state.globalConfig, baseMintAccount: state.baseMintAccount, baseMint: state.baseMint, coinCreator: state.pool.coinCreator, creator: state.pool.creator, feeConfig: state.feeConfig, quoteMint: state.pool.quoteMint, isMayhemMode: state.pool.isMayhemMode, creatorFeeBps: state.pool.creatorFeeBps });
@@ -228,5 +232,5 @@ export async function buildPumpTrade(
   const transaction = makeTransaction(units, microLamports);
   const finalSimulation = await connection.simulateTransaction(transaction, { sigVerify: false, commitment: 'confirmed' });
   if (finalSimulation.value.err) throw simulationFailure(finalSimulation.value.err, finalSimulation.value.logs, transaction);
-  return { transaction, feeManifest: instructionManifest(transaction.message), route, latest, observedSlot: latestResponse.context.slot, input, minimum: policy.minimum };
+  return { transaction, feeManifest: instructionManifest(transaction.message), route, latest, observedSlot: latestResponse.context.slot, input, minimum: policy.minimum, displayVaults };
 }

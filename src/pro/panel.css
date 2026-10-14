@@ -202,18 +202,27 @@
 
 .pro-panel[data-preview=true] .pro-wallet,.pro-panel[data-preview=true] .pro-balance,.pro-panel[data-preview=true] .pro-engine{display:none}
 
-.pro-settings-connection>summary{font-weight:600;font-size:16px;cursor:pointer}
-.pro-settings-description{margin:12px 0 16px;font-size:13px;line-height:1.6;color:var(--dp-muted)}
-.pro-settings .pro-settings-notifications{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;margin:24px 0;font-size:14px}
-.pro-settings .pro-settings-notifications input{appearance:none;position:relative;flex:0 0 44px;width:44px!important;height:24px;min-height:24px!important;margin:0!important;padding:0;border:1px solid var(--dp-border);border-radius:12px;background:var(--dp-field);cursor:pointer}
-.pro-settings-notifications input::before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--dp-muted)}
-.pro-settings-notifications input:checked{background:var(--dp-brand);border-color:var(--dp-brand)}
-.pro-settings-notifications input:checked::before{left:23px;background:var(--dp-bg)}
-.pro-settings-notifications input:disabled{opacity:.48;cursor:default}
-.pro-settings-notifications input:focus-visible{outline:2px solid var(--dp-focus);outline-offset:2px}
 
 .pro-panel .pro-settings-connection>.pro-settings-heading{margin:0;padding:0}
 .pro-panel .pro-settings-recipients .pro-settings-group{gap:12px;margin:12px 0 0}
 .pro-panel .pro-settings-recipients .pro-settings-group>p,.pro-panel .pro-settings-recipients label,.pro-panel .pro-settings-recipients button,.pro-panel .pro-settings-recipients .pro-settings-actions{margin:0}
 .pro-panel .pro-settings-recipients label{gap:8px}
 .pro-panel .pro-settings-recipient-review{margin:0}
+.pro-trade-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end;margin:8px 0 20px}
+.pro-presets button{min-height:42px}
+.pro-trade-tools label{min-width:0}
+.pro-panel[data-destination=trade] .pro-wallet{padding-top:8px;padding-bottom:8px}
+.pro-panel[data-destination=trade] .pro-balance{padding-top:8px;padding-bottom:12px}
+@media(max-width:339px){.pro-wallet{column-gap:8px}.pro-wallet>span{gap:4px}.pro-panel .pro-wallet-copy{padding-left:0;gap:4px}}
+.pro-trade-tools button{min-height:42px;font-size:13px}
+.pro-trade-tools [aria-pressed=true]{border-color:var(--dp-focus);color:var(--dp-text);background:var(--dp-hover)}
+.pro-position,.pro-panel [data-pro-holdings]{margin-top:24px;padding-top:20px;border-top:1px solid var(--dp-border)}
+.pro-position p,.pro-panel [data-pro-holdings] p{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.pro-holding{padding:16px 0;border-top:1px solid var(--dp-border-soft)}
+.pro-holding strong{font-family:var(--dp-mono);font-size:13px}
+.pro-holding a{display:inline-block;margin-top:8px;color:var(--dp-focus);font-size:13px}
+.pro-holding small{display:block;overflow-wrap:anywhere}
+.pro-panel [data-recover-initials]{width:100%;margin-top:8px;min-height:42px}
+.pro-trading-preferences>fieldset>p,.pro-trading-preferences details>p{font-size:13px;line-height:1.6;color:var(--dp-muted);margin:16px 0}
+.pro-trading-preferences [data-pref=status]{color:var(--dp-text);overflow-wrap:anywhere}
+.pro-panel [data-shortcuts]{white-space:pre-line;overflow-wrap:anywhere}

@@ -11,12 +11,14 @@ import { DEFAULT_SETTINGS, type WorkerRequest, type WorkerResponse } from '../sr
 import { userFacingError } from '../src/errors';
 import { GLOBAL_PDA, PUMP_PROGRAM_ID } from '@pump-fun/pump-sdk';
 import { SimulationFailure } from '../src/simulation';
-import { applyPresentation } from '../src/presentation';
+import { applyPresentation } from '../src/ui/presentation';
 import { createProWorker } from '../src/pro/worker';
-import { logEvent, exportDiagnostics, setDebugUntil, sanitizeDiagnostic } from '../src/diagnostics';
+import { installProHotkeyBroker } from '../src/pro/hotkeys';
+import { logEvent, exportDiagnostics, setDebugUntil, sanitizeDiagnostic } from '../src/diagnostics/diagnostics';
 
 export default defineBackground(() => {
   const pro = createProWorker();
+  installProHotkeyBroker(browser);
   // Content scripts receive only public presets through the policy-controlled relay.
   void browser.storage.local.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' });
   void browser.storage.session?.setAccessLevel?.({ accessLevel: 'TRUSTED_CONTEXTS' });
@@ -33,6 +35,7 @@ export default defineBackground(() => {
   const queries = createQueries(loadSettings, frameFor, wallet => {void browser.runtime.sendMessage({type:'PORTFOLIO_UPDATED',wallet}).catch(()=>{});});
   const orders = createOrders(loadSettings, frameFor, queries.invalidatePositions);
   browser.runtime.onConnect?.addListener(port=>{
+    if(port.name==='pro-hotkeys')return;
     if(port.name==='pro-events'&&port.sender){void authorizeRequest({type:'PRO',action:'REQUEST',method:'GET',path:'/v1/events'},port.sender).then(()=>pro.watchEvents(port)).catch(()=>port.disconnect());return;}
     if(port.name!=='portfolio-prices'||!port.sender){port.disconnect();return;}
     let epoch=0,alive=true;

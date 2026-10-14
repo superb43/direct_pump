@@ -1,5 +1,5 @@
 import type { PageTarget } from '../model';
-import type { ChartOverlayEntry } from '../chart-overlay-contract';
+import type { ChartOverlayEntry } from '../chart/chart-overlay-contract';
 
 export type ChartEntityId = string;
 export type ChartApi = {

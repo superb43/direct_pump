@@ -1,5 +1,5 @@
 import { browser } from 'wxt/browser';
-import { solIcon } from '../icons';
+import { solIcon } from '../ui/icons';
 import { validateProData } from './client';
 import { canonicalJson, type ProBalance, type ProHealth } from './contracts';
 import { validateWithdrawalSpec, type Recipient, type WithdrawalSpec, type WithdrawalPreview, type Withdrawal } from './withdrawals';

@@ -2,23 +2,23 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import type { Browser } from 'wxt/browser';
 import type { Settings, WorkerRequest, WorkerResponse, PositionSnapshot, Receipt, PortfolioSnapshot, PortfolioHolding } from '../model';
 import { targetKey } from '../sites/catalog';
-import { readPosition } from '../position';
+import { readPosition,positionDisplayRoute } from '../portfolio/position';
 import { tokenSymbol, cleanSymbol } from '../token-metadata';
 import { readTokenInfo } from '../token-info';
 import { readSavings, unauditedReceipts, allReceipts, cacheReceiptSymbol } from '../ledger';
 import type { createOrders, FrameFor } from './orders';
-import {isDustHolding,visiblePortfolio} from '../portfolio';
-import { readPortfolioBalances, type BalanceCache, type TrackedBalance } from '../portfolio-balances';
-import { isPending } from '../receipts';
+import {isDustHolding,visiblePortfolio} from '../portfolio/portfolio';
+import { readPortfolioBalances, type BalanceCache, type TrackedBalance } from '../portfolio/portfolio-balances';
+import { isPending } from '../receipts/receipts';
 import { userFacingError } from '../errors';
-import {logEvent} from '../diagnostics';
+import {logEvent} from '../diagnostics/diagnostics';
 import {createPriceQuotes,priceQuoteKey,mergePrice,withCurrentUsd} from './price-quotes';
 import {currentSolUsd,solUsdSnapshot,solUsdRetryAt} from '../usd-price';
 import {createPriceStream,DEFAULT_PRICE_WS} from './price-stream';
 import {priceAccounts} from './price-accounts';
-import {createChartEntryCache} from '../chart-entry-cache';
+import {createChartEntryCache} from '../chart/chart-entry-cache';
 
-type PositionJob = { wallet: string; at: number; pending: boolean; refresh?:boolean; binding?:string; job: Promise<PositionSnapshot> };
+type PositionJob = { wallet: string; at: number; pending: boolean; refresh?:boolean; binding?:string; snapshot?:PositionSnapshot;job: Promise<PositionSnapshot> };
 
 type PriceSource={target:string;accounts:string[];pending:boolean;at:number;slot?:number;abort?:AbortController};
 type PortfolioJob = { wallet: string; key:string; config:string; settings:Settings; rows:TrackedBalance[]; balanceCache:BalanceCache; orders:ReturnType<typeof createOrders>; sources:Map<string,PriceSource>; slowPrices:Set<string>; attempted:Map<string,number>; revision: number; nextAt: number; failures: number; minSlot?:number; snapshot?: PortfolioSnapshot; pending?: Promise<PortfolioSnapshot> };
@@ -33,7 +33,7 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
     if(!missing.length)return rows;
     let settings:Settings;
     try {settings=await loadSettings();} catch {return rows;}
-    const rpc=new Connection(settings.rpcUrl,'confirmed');
+    const rpc=quotes.connection(settings.rpcUrl);
     const resolved=new Map<string,string>();
     await Promise.all(missing.map(async mint=>{
       const key=JSON.stringify([settings.rpcUrl,mint]);let entry=symbols.get(key);
@@ -80,6 +80,13 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
       const holding=row.holding,mint=holding.mint;
       if(!holding.position||!row.quoteReady||!watched(entry,mint))continue;
       const target=targetKey(row.target),prior=entry.sources.get(mint);
+      const known=quotes.accounts(entry.settings,row.target,holding.position);
+      if(known){
+        if(prior?.target!==target||JSON.stringify(prior.accounts)!==JSON.stringify(known)){
+          prior?.abort?.abort();entry.sources.set(mint,{target,accounts:known,pending:false,at:Date.now(),slot:prior?.target===target?prior.slot:undefined});syncStream();streamState();
+        }
+        continue;
+      }
       if(prior?.target===target&&(prior.pending||Date.now()-prior.at<60_000))continue;
       const source:PriceSource={target,accounts:prior?.target===target?prior.accounts:[],slot:prior?.target===target?prior.slot:undefined,pending:true,at:Date.now()},revision=entry.revision;entry.sources.set(mint,source);
       const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),8000);source.abort=abort;
@@ -157,8 +164,16 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
     activeConfig=configKey(settings);const endpoint=settings.priceWsUrl||DEFAULT_PRICE_WS;
     if(!stream||endpoint!==streamEndpoint){
       stream?.destroy();streamEndpoint=endpoint;
-      stream=createPriceStream(endpoint,(address,slot)=>{
-        for(const entry of portfolios.values())for(const row of entry.rows)if(watched(entry,row.holding.mint)&&entry.sources.get(row.holding.mint)?.accounts.includes(address)){const source=entry.sources.get(row.holding.mint)!;source.slot=Math.max(source.slot??0,slot);quotes.invalidate(entry.settings.rpcUrl);enqueuePrice(entry,row,slot);}
+      stream=createPriceStream(endpoint,(address,slot,value,changed=true)=>{
+        const observed=new Set<string>();
+        for(const entry of portfolios.values())for(const row of entry.rows)if(watched(entry,row.holding.mint)&&entry.sources.get(row.holding.mint)?.accounts.includes(address)){
+          const source=entry.sources.get(row.holding.mint)!;source.slot=Math.max(source.slot??0,slot);
+          if(!observed.has(entry.settings.rpcUrl)){
+            if(value===undefined||!quotes.observe(entry.settings.rpcUrl,endpoint,address,slot,value))quotes.invalidate(entry.settings.rpcUrl,[address]);
+            observed.add(entry.settings.rpcUrl);
+          }
+          if(changed)enqueuePrice(entry,row,slot);
+        }
       },streamState);
     }
     if(watchTimer===undefined)watchTimer=setInterval(tickPrices,1000);
@@ -198,7 +213,7 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
       try{
         const receipts=await allReceipts(request.wallet),latest=await orders.loadReceipt(request.wallet);
         const minSlot=latest?.status==='CONFIRMED'?latest.confirmedSlot??latest.feeReceipt?.slot:undefined;
-        const rpc=new Connection(settings.rpcUrl,{commitment:'confirmed',disableRetryOnRateLimit:true,fetch:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(8_000)})});
+        const rpc=quotes.connection(settings.rpcUrl,minSlot);
         const rows=await readPortfolioBalances(rpc,wallet,receipts,minSlot,{cache:active.balanceCache,slowMints:new Set(active.snapshot?.holdings.filter(isDustHolding).map(holding=>holding.mint)),refresh:request.refresh});
         if(revision!==active.revision||orders.isBusy(request.wallet)||isPending(await orders.loadReceipt(request.wallet)))throw new Error('Holdings changed during the read. Retrying automatically.');
         if(rows.length&&rows.every(row=>!row.holding.position))throw new Error(rows[0]!.holding.error??'Balance data is unavailable.');
@@ -238,9 +253,9 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
     const settings = await loadSettings();
     const key = JSON.stringify([request.wallet, targetKey(request.target), settings.rpcUrl, settings.priorityFeeLamports, settings.slippageBps, settings.jupiterApiKey]);
     const scope=JSON.stringify([settings.rpcUrl,targetKey(request.target)]);
-    const rpc=new Connection(settings.rpcUrl,'confirmed');
     let confirmed=confirmedPositions.get(key);
     if(!confirmed||request.refresh&&!(confirmed.pending&&confirmed.refresh)||!confirmed.pending&&Date.now()-confirmed.at>=1000){
+      const route=confirmed?.snapshot?positionDisplayRoute(confirmed.snapshot,request.target):undefined;
       let owned!:PositionJob;
       const job=(async()=>{
         const receipt=await orders.loadReceipt(request.wallet);
@@ -250,14 +265,14 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
         const expectedMint=request.target.kind==='MINT'?request.target.address:request.target.mintHint;
         const row=!holdings?.pending&&!holdings?.snapshot?.balanceError?holdings?.rows.find(row=>row.holding.mint===expectedMint):undefined;
         const balance=row?.holding.position&&row.balanceSlot!==undefined?{position:row.holding.position,slot:row.balanceSlot,quoteReady:row.quoteReady}:undefined;
-        const snapshot=await readPosition(rpc,request.target,wallet,settings,request.market,true,minContextSlot,undefined,
-          {cache:chartEntries,scope,balance,blocked});
+        const snapshot=await readPosition(quotes.connection(settings.rpcUrl,minContextSlot),request.target,wallet,settings,request.market,true,minContextSlot,undefined,
+          {cache:chartEntries,scope,balance,blocked,route});
         if(confirmedPositions.get(key)!==owned)throw new Error('Position changed during the read. Read again.');
         return snapshot;
       })();
       owned={wallet:request.wallet,at:Date.now(),pending:true,refresh:request.refresh,job};
       confirmed=owned;confirmedPositions.set(key,owned);
-      void job.then(()=>{if(confirmedPositions.get(key)===owned){owned.pending=false;owned.at=Date.now();}},()=>{if(confirmedPositions.get(key)===owned)confirmedPositions.delete(key);});
+      void job.then(snapshot=>{if(confirmedPositions.get(key)===owned){owned.snapshot=snapshot;owned.pending=false;owned.at=Date.now();}},()=>{if(confirmedPositions.get(key)===owned)confirmedPositions.delete(key);});
     }
     const base=await confirmed.job;
     if(confirmedPositions.get(key)!==confirmed)throw new Error('Position changed during the read. Read again.');
@@ -286,7 +301,7 @@ export function createQueries(loadSettings: () => Promise<Settings>, frameFor: F
     if (request.type === 'TOKEN_INFO') {
       await frameFor(sender, request);
       const settings = await loadSettings();
-      return {ok: true, token: await readTokenInfo(new Connection(settings.rpcUrl, 'confirmed'), request.target)};
+      return {ok: true, token: await readTokenInfo(quotes.connection(settings.rpcUrl), request.target)};
     }
     if (request.type === 'HISTORY') return {ok: true, receipts: await receiptSymbols(await allReceipts(request.wallet, request.mint)), savings: await readSavings()};
     for (const tracked of await unauditedReceipts()) orders.scheduleAudit(tracked);

@@ -1,8 +1,9 @@
 import { UUID, validateWithdrawalSpec } from './withdrawals';
 import { browser } from 'wxt/browser';
-import { sanitizeDiagnostic } from '../diagnostics';
+import { sanitizeDiagnostic } from '../diagnostics/diagnostics';
 import { DEFAULT_PRO_SETTINGS, PRO_API_VERSION, authMessage, canonicalJson, validateProSpec, validateProSpecV2, usdUnits, type ProSettings } from './contracts';
 import { marketCapUsd } from './mc';
+import {validateProPortfolio,validateProRecoverInitialsPreview} from './portfolio-contracts';
 
 const SETTINGS_KEY = 'proSettings';
 const KEY_DATABASE = 'direct-pump-pro-device';
@@ -32,6 +33,8 @@ export async function saveProSettings(settings: ProSettings): Promise<void> {
 export function validateProData(path: string, data: unknown): void {
   const row = data && typeof data === 'object' ? data as Record<string, unknown> : undefined;
   const route = path.split('?')[0] ?? '';
+  if(route==='/v1/portfolio')validateProPortfolio(data);
+  if(route==='/v2/recover-initials/preview')validateProRecoverInitialsPreview(data);
   if (route === '/v1/info' && (!row || !identity(row.serverId) || row.apiVersion !== PRO_API_VERSION)) throw new Error('Incompatible or invalid Pro server info.');
   if (route === '/v1/pair' && (!row || !identity(row.serverId) || !identity(row.deviceId))) throw new Error('Invalid pairing response.');
   if (route === '/v1/health' && (!row || !identity(row.serverId) || row.apiVersion !== PRO_API_VERSION || !['LOCKED','READY','UNAVAILABLE'].includes(String(row.signer)) || !['PAUSED','RUNNING','RECOVERING'].includes(String(row.engine)) || typeof row.wallet !== 'string' || !Number.isSafeInteger(row.at) || !row.limits || typeof row.limits !== 'object')) throw new Error('Invalid server health response.');

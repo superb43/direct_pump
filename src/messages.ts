@@ -1,5 +1,5 @@
 import type { WorkerRequest } from './model';
-import type { ChartOverlayCommand } from './chart-overlay-contract';
+import type { ChartOverlayCommand } from './chart/chart-overlay-contract';
 
 type Access = 'PAGE_TARGET' | 'PANEL_PUBLIC' | 'SETTINGS_PRIVATE' | 'DASHBOARD_PRIVATE' | 'PORTFOLIO_PRIVATE' | 'PRO_PRIVATE';
 // One policy table governs both the content relay and the worker sender checks.

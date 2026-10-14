@@ -1,6 +1,6 @@
 import {PublicKey,VersionedTransaction,type Connection} from '@solana/web3.js';
 import {getAssociatedTokenAddressSync,unpackAccount,unpackMint} from '@solana/spl-token';
-import {chartEntryFromFills,type ChartEntryFill,type ChartEntryResult} from '../src/chart-entry';
+import {chartEntryFromFills,type ChartEntryFill,type ChartEntryResult} from '../src/chart/chart-entry';
 import {analyzeFeeFacts} from '../src/fee-receipt';
 import {instructionManifest} from '../src/manifest';
 import bs58 from 'bs58';

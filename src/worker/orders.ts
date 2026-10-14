@@ -5,13 +5,14 @@ import bs58 from 'bs58';
 import { buildHybridTrade } from '../hybrid';
 import { preparePhantom, sendWithPhantom, inspectPhantom, type SigningFrame } from '../phantom';
 import type { WorkerRequest, WorkerResponse, Receipt, Settings } from '../model';
-import { isPending, settleReceipt } from '../receipts';
+import { isPending, settleReceipt } from '../receipts/receipts';
 import { userFacingError } from '../errors';
 import { reconcileMissingSignature } from '../reconcile';
 import { verifyFeeReceipt, pendingFees } from '../fee-receipt';
 import { recordVerifiedTrade, archiveReceipt, receiptBySignature } from '../ledger';
-import {logEvent} from '../diagnostics';
-import {cleanReceipt} from '../receipt-diagnostics';
+import {logEvent} from '../diagnostics/diagnostics';
+import {cleanReceipt} from '../receipts/receipt-diagnostics';
+import {rememberPumpVaults} from '../portfolio/pump-quote';
 
 export type FrameFor = (sender: Browser.runtime.MessageSender, request: WorkerRequest & { target: unknown }) => Promise<SigningFrame>;
 
@@ -125,6 +126,7 @@ export function createOrders(loadSettings: () => Promise<Settings>, frameFor: Fr
       const rpc = new Connection(settings.rpcUrl, 'confirmed');
       const built = await buildHybridTrade(rpc, request.target, wallet, request.intent, settings);
       const currentFrame = await frameFor(sender, request);
+      if(built.route.venue==='PUMP_SWAP'&&'displayVaults' in built&&built.displayVaults)rememberPumpVaults(rpc,{venue:'PUMP_SWAP',mint:built.route.mint,account:built.route.account},built.displayVaults,{wallet:request.wallet,target:request.target});
       const orderId = crypto.randomUUID();
       await preparePhantom(currentFrame, request.target, request.wallet, Array.from(built.transaction.serialize()), orderId);
       const receipt: Receipt = {

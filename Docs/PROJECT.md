@@ -171,16 +171,27 @@ It supports GMGN, Axiom and FOMO Family Solana token pages through fixed typed
 readers and one shared controller/worker. It also includes an optional self-hosted
 Pro API/engine/private-signer path. No hosted wallet service is implied.
 
-| Boundary | Responsibility |
-| --- | --- |
-| `src/sites/catalog.ts`, site readers | Fixed URL identities and page facts; site differences stay here |
-| Content/side-panel relay | Verified tab/frame/document and current-page lifetime |
-| Panel controller/view | Shared controls, immutable captured intent and owned async responses |
-| `src/worker/policy.ts`, orders/queries | Sender authorization, pending wallet locks, shared read lifetimes |
-| Execution/builders/simulation | On-chain identity, actual instructions, limits and unsigned validation |
-| Position/portfolio projections | Integer financial calculations; no DOM-reader runtime imports |
-| Pro API/engine | Authenticated native-view commands, durable intent, observation and mirrored state |
-| Private signer/withdrawal authority | Keys, independent authorization, exact bytes and private reservations |
+| Boundary | Responsibility | Regression location |
+| --- | --- | --- |
+| `src/sites/` | Fixed URL identities and DOM facts; site differences stay here | `tests/sites/`, shared `tests/fixtures/` |
+| `src/page-context.ts`, content/side-panel relay | Verified tab/frame/document and current-page lifetime | `tests/panel/` |
+| `src/panel/` | Shared controls, immutable captured intent and owned async responses | `tests/panel/` |
+| `src/ui/` | Shared tokens, fonts, controls, icons and presentation helpers | `tests/ui/`, offline browser previews |
+| `src/worker/` | Sender authorization, pending wallet locks, shared read/price lifetimes | `tests/worker/` |
+| Root execution/builders/simulation modules | On-chain identity, actual instructions, limits and unsigned validation | `tests/core/` |
+| `src/portfolio/` | Position/portfolio calculations and projections; no DOM-reader runtime imports | `tests/portfolio/` |
+| `src/receipts/`, root `src/ledger.ts` | Receipt presentation, fee summaries and existing financial persistence | `tests/receipts/` |
+| `src/chart/` | Verified entry projection, bounded trusted relay and owned drawing lifetime | `tests/chart/` |
+| `src/diagnostics/` | Sanitization, operational event storage and diagnostic display | `tests/diagnostics/` |
+| `src/pro/` | Native-view-only Pro contracts, client/worker and views | `tests/pro/` |
+| `server/` API/engine/private signer | Durable intent, observation, independent keys/authorization and private reservations | `tests/pro/` server/engine/signer cases |
+
+Root `src/` retains cross-feature types, amounts, settings, protocol builders and
+wallet/recovery interfaces. Existing `sites/`, `worker/`, `pro/`, `vendor/` and
+`server/` boundaries stay distinct; server reuse of pure shared code does not
+introduce browser or site-DOM authority. Tests are grouped by feature/mode and
+keep their filenames. `tests/architecture.test.ts` checks dependency boundaries;
+`tests/fixtures/` remains the shared fixture location.
 
 `pageKey` controls page mount lifetime. `targetKey` binds trades and route-dependent
 caches to page identity and mint/pool hints. Axiom's pool URL never becomes a mint
@@ -436,6 +447,37 @@ Never delete or edit financial journals to release reservations or submit a
 replacement transaction to compensate for an uncertain result.
 
 ## Pro operations
+
+### Trading controls and accounting
+
+Market orders submit directly by default; Limit orders require confirmation by
+default. Settings → Trading preferences controls those options independently and
+saves up to eight execution profiles. Attached exit strategies, standalone exit
+strategies, edits and recovery retries retain explicit review. A review checkbox
+changes future confirmation policy only; the current order still needs Confirm.
+
+Hotkeys are disabled until enabled in the mounted Trade panel and are not restored
+after closing it or changing the server wallet. Native panel shortcuts use Space
+with configured keys. Browser commands use the registered extension shortcuts
+(four suggested defaults: Alt+Shift+1–4); configure others at
+`chrome://extensions/shortcuts`. Browser commands require an open, armed Trade
+panel and the matching focused token page. Input editing, ambiguous windows,
+expired gestures and changed documents do not submit an order.
+
+Portfolio reads require `portfolio-v1`; Sell Initials requires
+`recover-initials-preview-v1`. Old servers retain existing orders and hide the new
+controls. The portfolio covers known Pro journal assets and the current token,
+not an indexed scan of every externally deposited asset. History is reconstructed
+in bounded reads. Missing history, external token movement and unresolved fills
+remain unavailable. Actual SOL fees and rent enter accounting; current USD values
+are current conversions rather than historical dollar returns.
+
+Sell Initials uses outstanding fee-inclusive SOL outlay and unreserved tokens.
+Its liquidation estimate conservatively subtracts the full selected network
+budget. Insufficient inventory blocks recovery instead of silently selling all;
+price changes can leave a remainder and no follow-up sell is automatic. Existing
+order specs, signer authorization, journals, reservations and receipt schemas are
+compatible; updating these controls never releases financial uncertainty.
 
 [← README](../README.md) · [Server setup](#pro-setup)
 

@@ -5,11 +5,10 @@
 <h1 align="center">Direct Pump</h1>
 
 <p align="center"><strong>Keep the terminal. Skip the terminal fee.</strong></p>
-<p align="center">Your execution layer for Axiom, GMGN, and FOMO Family.</p>
-<p align="center"><strong>0% added terminal fees. Phantom-approved (Basic). Open source.</strong></p>
-<p align="center">Trade supported Solana tokens without leaving the charts you already use. Network, protocol, and other execution costs still apply.</p>
-<p align="center">Basic trades require your approval in Phantom. Pro executes reviewed orders through your self-hosted server wallet.</p>
-<p align="center"><a href="#quick-start">Install</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="Docs/PROJECT.md#pro-setup">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
+<p align="center">Your execution layer for Axiom, GMGN, and FOMO</p>
+<p align="center"><strong>0% added terminal fees. Phantom-approved. Open source</strong></p>
+<p align="center">Trade supported Solana tokens without leaving the charts you already use</p>
+<p align="center"><a href="https://chromewebstore.google.com/detail/direct-pump/ipklpacekegiifhkfgmlgojjokdjocfh">Install from Chrome Web Store</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="Docs/PROJECT.md#pro-setup">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
 
 ### Basic mode · Trading panel
 
@@ -59,22 +58,12 @@ Basic and Pro are two execution modes in the same extension. Pro currently uses 
 
 | Feature | Basic | Pro |
 | --- | :---: | :---: |
-| SOL Buy / Percentage Sell Presets | ✅ | ✅ |
-| Holdings & Estimated Net PnL | ✅ | ✅ |
-| Instant Trade | ❌ | ✅ |
-| Independent Market / Limit Confirmation Settings | ❌ | ✅ |
-| Trading Profiles | ❌ | ✅ |
-| Preset Hotkeys & Browser Shortcuts | ❌ | ✅ |
-| Realized PnL & Unrecovered SOL | ❌ | ✅ |
-| Sell Initials | ❌ | ✅ |
-| Limit Orders | ❌ | ✅ |
-| TP/SL & Trailing | ❌ | ✅ |
-| Split Exit | ❌ | ✅ |
-| Entry Protection | ❌ | ✅ |
-| USD Order Values & Remaining Split-exit Percentages | ❌ | ✅ |
-| Trailing High / Current / Trigger MC | ❌ | ✅ |
-| Edit / Pause / Cancel Open Orders | ❌ | ✅ |
-| Background Orders | ❌ | ✅ |
+| Buy/Sell Presets & Holdings | ✅ | ✅ |
+| Instant Trade & Confirmation Settings | ❌ | ✅ |
+| Trading Profiles & Hotkeys | ❌ | ✅ |
+| Conditional Orders (Limit, TP/SL, Trailing, Split Exit) | ❌ | ✅ |
+| Realized PnL & Sell Initials | ❌ | ✅ |
+| Order Tracking & Management | ❌ | ✅ |
 | Chrome / Telegram Alerts | ❌ | ✅ |
 
 `Instant Trade` skips a separate Phantom approval. Registered orders run while your server and signer are online.

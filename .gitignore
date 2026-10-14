@@ -30,6 +30,7 @@ output/playwright/
 
 # Internal records
 /Docs/DEVELOPMENT-HISTORY.md
+/Docs/DESIGN-HISTORY.md
 /Docs/PRO-UI-AUDIT.md
 /Docs/PRO-ONBOARDING.md
 /Docs/MEDIA.md

@@ -1,10 +1,11 @@
 import bs58 from 'bs58';
 import type { Recipient } from './withdrawals';
 import type { ProHealth } from './contracts';
-import { sanitizeDiagnostic } from '../diagnostics';
+import { sanitizeDiagnostic } from '../diagnostics/diagnostics';
 import { browser } from 'wxt/browser';
 import type { ProReply, ProSettings } from './contracts';
 import type { ProRequest } from './worker';
+import settingsCss from './settings.css?inline';
 export async function sendPro(request: Omit<ProRequest, 'type'>): Promise<unknown> {
   const reply = await browser.runtime.sendMessage({ type: 'PRO', ...request }) as ProReply;
   if (!reply.ok) throw new Error(String(sanitizeDiagnostic(reply.error)));
@@ -16,7 +17,7 @@ export interface ProSettingsController {
   destroy: () => void;
 }
 export function mountProSettings(container: HTMLElement): ProSettingsController {
-  container.innerHTML = `<section class="pro-settings pro-connection-settings">
+  container.innerHTML = `<style>${settingsCss}</style><section class="pro-settings pro-connection-settings">
     <details class="pro-settings-connection" data-pro="connection">
     <summary class="pro-settings-heading">Pro · Personal server</summary>
     <p class="pro-settings-description">Disabled by default. Orders run on your dedicated server wallet without Phantom approval. Closing this browser does not stop orders.</p>

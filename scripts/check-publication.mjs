@@ -32,7 +32,7 @@ export async function readProjectNotices() {
 export function validatePublicationPaths(files) {
   const privateDirectory = /(^|\/)(?:node_modules|\.git|\.omx|\.codex|\.claude|\.agents|\.impeccable|\.wxt|\.output|server-dist|pro-state|\.private|output|\.playwright-cli)(\/|$)/;
   const privateSuffix = /\.(?:enc|pem|key|sqlite(?:-wal|-shm|-journal)?|db(?:-wal|-shm|-journal)?|sock|log)$/i;
-  const internal = /^(?:AGENTS|ARCHITECTURE|DESIGN|PRODUCT)\.md$|^docs\/(?:DEVELOPMENT-HISTORY|PRO-UI-AUDIT|PRO-ONBOARDING|MEDIA)\.md$/i;
+  const internal = /^(?:AGENTS|ARCHITECTURE|DESIGN|PRODUCT)\.md$|^docs\/(?:DEVELOPMENT-HISTORY|DESIGN-HISTORY|PRO-UI-AUDIT|PRO-ONBOARDING|MEDIA)\.md$/i;
   const unsafe = files.filter(file => privateDirectory.test(file) || privateSuffix.test(file) || internal.test(file)
     || /(^|\/)\.env(?:\.|$)/.test(file) && !/(^|\/)\.env\.example$/.test(file));
   if (unsafe.length) throw new Error(`Private/generated publication candidates:\n${unsafe.join('\n')}`);

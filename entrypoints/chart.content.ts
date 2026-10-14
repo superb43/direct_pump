@@ -1,5 +1,5 @@
 import { SITE_MATCHES } from '../src/sites/catalog';
-import { createChartOverlay } from '../src/chart-overlay';
+import { createChartOverlay } from '../src/chart/chart-overlay';
 
 export default defineContentScript({
   matches: SITE_MATCHES,

@@ -19,7 +19,7 @@ function evaluate(code, host, activate = false) {
 }
 try {
   const entry = join(temporary, 'entry.ts');
-  await writeFile(entry, `export { createChartOverlay } from ${JSON.stringify(join(root, 'src/chart-overlay.ts'))};\nexport { detectPage, targetKey } from ${JSON.stringify(join(root, 'src/sites/catalog.ts'))};\nexport { readPageHints } from ${JSON.stringify(join(root, 'src/adapters.ts'))};\nexport { readChartBinding } from ${JSON.stringify(join(root, 'src/sites/charts.ts'))};\n`);
+  await writeFile(entry, `export { createChartOverlay } from ${JSON.stringify(join(root, 'src/chart/chart-overlay.ts'))};\nexport { detectPage, targetKey } from ${JSON.stringify(join(root, 'src/sites/catalog.ts'))};\nexport { readPageHints } from ${JSON.stringify(join(root, 'src/adapters.ts'))};\nexport { readChartBinding } from ${JSON.stringify(join(root, 'src/sites/charts.ts'))};\n`);
   await build({ configFile: false, logLevel: 'error', build: { lib: { entry, name: 'DirectPumpChartProbe', formats: ['iife'], fileName: () => 'probe.js' }, outDir: join(temporary, 'out'), minify: true } });
   const bundle = await readFile(join(temporary, 'out/probe.js'), 'utf8');
   const probe = `${bundle}\n(async () => {

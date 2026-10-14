@@ -2,7 +2,7 @@ export const DEFAULT_PRICE_WS='wss://solana-rpc.publicnode.com';
 type Pending={address?:string;timer:ReturnType<typeof setTimeout>};
 
 /** One read-only Solana connection. Raw notifications invalidate quotes, never price them. */
-export function createPriceStream(endpoint:string,onChange:(address:string,slot:number)=>void,onState:()=>void){
+export function createPriceStream(endpoint:string,onChange:(address:string,slot:number,value:unknown,changed:boolean)=>void,onState:()=>void){
   const desired=new Set<string>(),subscriptions=new Map<string,number>(),byId=new Map<number,string>(),pending=new Map<number,Pending>(),seen=new Map<string,{slot:number;data:string}>();
   let socket:WebSocket|undefined,generation=0,nextId=0,failures=0,closed=false;
   let reconnect:ReturnType<typeof setTimeout>|undefined,heartbeat:ReturnType<typeof setInterval>|undefined,opening:ReturnType<typeof setTimeout>|undefined;
@@ -58,7 +58,7 @@ export function createPriceStream(endpoint:string,onChange:(address:string,slot:
         if(!address||!desired.has(address)||!Number.isSafeInteger(slot)||slot<0)return;
         const data=JSON.stringify(result.value),prior=seen.get(address);
         if(prior&&(slot<prior.slot||slot===prior.slot&&data===prior.data))return;
-        seen.set(address,{slot,data});onChange(address,slot);
+        seen.set(address,{slot,data});onChange(address,slot,result.value,!prior||prior.data!==data);
       }catch{/* Malformed or unrelated messages do not change financial data. */}
     });
     current.addEventListener('error',()=>{if(epoch===generation)retry();});

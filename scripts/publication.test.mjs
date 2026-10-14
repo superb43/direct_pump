@@ -8,7 +8,7 @@ test('public docs, fixtures and credential-free example configuration remain all
   assert.doesNotThrow(() => validatePublicationPaths(['README.md', 'Docs/PROJECT.md', '.env.example', 'tests/fixtures/sites/gmgn.html', 'Docs/licenses/assets/INTER-LICENSE.txt']));
 });
 test('runtime state, private tooling, actual environment files and encrypted backups cannot become source candidates', () => {
-  for (const path of ['.env', '.env.production', 'nested/.env.local', 'pro-state/journal.json', 'wallet.enc', 'backup.key', 'data.sqlite-wal', '.omx/notepad.md', 'node_modules/pkg/index.js', 'output/releases/build.zip', 'server-dist/cli.mjs', 'ARCHITECTURE.md', 'docs/DEVELOPMENT-HISTORY.md', 'Docs/DEVELOPMENT-HISTORY.md']) {
+  for (const path of ['.env', '.env.production', 'nested/.env.local', 'pro-state/journal.json', 'wallet.enc', 'backup.key', 'data.sqlite-wal', '.omx/notepad.md', 'node_modules/pkg/index.js', 'output/releases/build.zip', 'server-dist/cli.mjs', 'ARCHITECTURE.md', 'docs/DEVELOPMENT-HISTORY.md', 'Docs/DEVELOPMENT-HISTORY.md', 'Docs/DESIGN-HISTORY.md', 'docs/design-history.md']) {
     assert.throws(() => validatePublicationPaths([path]), /Private\/generated publication candidates/);
   }
 });

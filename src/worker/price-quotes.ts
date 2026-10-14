@@ -1,15 +1,16 @@
 import {PublicKey} from '@solana/web3.js';
 import type {PageTarget,PositionSnapshot,Settings} from '../model';
 import {targetKey} from '../sites/catalog';
-import {quotePosition} from '../position';
+import {quotePosition,type DisplayRouteCache} from '../portfolio/position';
 import {quoteIssue} from '../quote-issue';
 import {currentSolUsd,solUsdRetryAt} from '../usd-price';
-import {logEvent} from '../diagnostics';
+import {logEvent} from '../diagnostics/diagnostics';
 import {createPriceScheduler} from './price-scheduler';
 import {createPriceRpc} from './price-rpc';
+import {knownPumpAccounts} from '../portfolio/pump-quote';
 
 type Deferred={promise:Promise<PositionSnapshot>;resolve:(value:PositionSnapshot)=>void;reject:(reason:unknown)=>void};
-type Entry={wallet:string;endpoint:string;result?:PositionSnapshot;pending?:Deferred;running:boolean;slot:number;requiredSlot:number;completedSlot:number;failures:number;retryAt:number;at:number;touched:number};
+type Entry={wallet:string;endpoint:string;routeCache:DisplayRouteCache;result?:PositionSnapshot;pending?:Deferred;running:boolean;slot:number;requiredSlot:number;completedSlot:number;failures:number;retryAt:number;at:number;touched:number};
 export function priceQuoteKey(settings:Settings,target:PageTarget,base:PositionSnapshot){
  return JSON.stringify([base.wallet,targetKey(target),base.mint,base.balanceRaw,base.decimals,base.supplyRaw,settings.rpcUrl,settings.priorityFeeLamports,settings.slippageBps,settings.jupiterApiKey]);
 }
@@ -30,7 +31,7 @@ export function createPriceQuotes(onResult:(key:string,price:PositionSnapshot)=>
  function request(settings:Settings,target:PageTarget,base:PositionSnapshot,options:{refresh?:boolean;slot?:number;quoteReady?:boolean;blocked:()=>Promise<boolean>}):Promise<PositionSnapshot>{
   const key=priceQuoteKey(settings,target,base),slot=options.slot??0;
   let entry=entries.get(key);
-  if(!entry){entry={wallet:base.wallet,endpoint:settings.rpcUrl,running:false,slot:0,requiredSlot:0,completedSlot:0,failures:0,retryAt:0,at:0,touched:Date.now()};entries.set(key,entry);}
+  if(!entry){entry={wallet:base.wallet,endpoint:settings.rpcUrl,routeCache:{},running:false,slot:0,requiredSlot:0,completedSlot:0,failures:0,retryAt:0,at:0,touched:Date.now()};entries.set(key,entry);}
   const owned=entry;owned.touched=Date.now();owned.requiredSlot=Math.max(owned.requiredSlot,slot);
   const project=(price:PositionSnapshot)=>mergePrice(base,withCurrentUsd(price));
   if(owned.result&&(Date.now()<owned.retryAt||!options.refresh&&owned.requiredSlot<=owned.completedSlot&&Date.now()-owned.at<3000)&&!owned.pending)return Promise.resolve(project(owned.result));
@@ -46,7 +47,7 @@ export function createPriceQuotes(onResult:(key:string,price:PositionSnapshot)=>
     if(initiallyBlocked)throw new Error('Position updates resume after the active trade.');
     const rpc=transport.connection(settings.rpcUrl,minSlot,abort.signal);
     // USD conversion is a separate shared job and never occupies a quote slot.
-    const read=quotePosition(rpc,target,new PublicKey(base.wallet),settings,base,options.quoteReady,undefined,{signal:abort.signal,skipUsd:true});
+    const read=quotePosition(rpc,target,new PublicKey(base.wallet),settings,base,options.quoteReady,undefined,{signal:abort.signal,skipUsd:true,routeCache:owned.routeCache});
     const interrupted=new Promise<never>((_resolve,reject)=>{abort.signal.addEventListener('abort',()=>reject(abort.signal.reason),{once:true});});
     const priced=await Promise.race([read,interrupted]);
     if(abort.signal.aborted)throw abort.signal.reason;
@@ -77,5 +78,8 @@ export function createPriceQuotes(onResult:(key:string,price:PositionSnapshot)=>
  }
  function cancel(matches:(key:string,entry:Entry)=>boolean){for(const [key,entry]of entries)if(matches(key,entry)){entries.delete(key);entry.pending?.reject(new Error('Price read cancelled.'));scheduler.cancel(value=>value===key);}}
  return {request,cancelWallet:(wallet:string)=>cancel((_key,entry)=>entry.wallet===wallet),cancelKey:(key:string)=>cancel(value=>value===key),retryAt:(key:string)=>{const entry=entries.get(key);if(entry)entry.touched=Date.now();return entry?.retryAt??0;},
-  connection:transport.connection,invalidate:(endpoint:string)=>transport.invalidate(endpoint)};
+  accounts:(settings:Settings,target:PageTarget,base:PositionSnapshot)=>{
+   const route=entries.get(priceQuoteKey(settings,target,base))?.routeCache.route;
+   return route&&(route.venue==='PUMP_CURVE'||route.venue==='PUMP_SWAP')?knownPumpAccounts(transport.connection(settings.rpcUrl),route,{wallet:base.wallet,target}):undefined;
+  },connection:transport.connection,invalidate:(endpoint:string,addresses?:string[])=>transport.invalidate(endpoint,addresses),observe:transport.observe};
 }

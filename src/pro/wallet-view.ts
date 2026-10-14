@@ -1,6 +1,6 @@
 import bs58 from 'bs58';
 import qrcode from 'qrcode-generator';
-import { icon, solIcon } from '../icons';
+import { icon, solIcon } from '../ui/icons';
 
 export function validDepositAddress(address: string): boolean {
   try { return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address) && bs58.decode(address).length === 32; }

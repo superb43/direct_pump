@@ -1,6 +1,6 @@
 import type { ProStore } from './store';
 import type { ProEvent } from '../src/pro/contracts';
-import { sanitizeDiagnostic } from '../src/diagnostics';
+import { sanitizeDiagnostic } from '../src/diagnostics/diagnostics';
 export const TELEGRAM_PREFIX = '[DIRECT_PUMP]';
 export function criticalNotification(type: string) { return /^(CONFIRMED|FINALIZED|FAILED|EXPIRED|UNKNOWN|PROTECTION_ACTIVE|PROTECTION_PENDING|SERVICE_ERROR|SIGNER_ERROR|RISK_BLOCKED)$/.test(type); }
 function notificationText(value: string) {

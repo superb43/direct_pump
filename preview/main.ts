@@ -1,4 +1,4 @@
-import { mountPanel } from '../src/panel';
+import { mountPanel } from '../src/panel/panel';
 import { DEFAULT_SETTINGS, type PageTarget, type WorkerResponse, type Receipt } from '../src/model';
 
 let count = 0;

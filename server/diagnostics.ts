@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { APP_VERSION } from '../src/app-version';
-import { sanitizeDiagnostic, type DiagnosticEvent, type DiagnosticInput } from '../src/diagnostic-sanitize';
+import { sanitizeDiagnostic, type DiagnosticEvent, type DiagnosticInput } from '../src/diagnostics/diagnostic-sanitize';
 export const DIAGNOSTIC_RETENTION_MS = 30 * 86400000;
 export const DIAGNOSTIC_MAX_BYTES = 250 * 1024 * 1024;
 export class ServerDiagnostics {

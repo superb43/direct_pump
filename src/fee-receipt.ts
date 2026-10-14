@@ -11,7 +11,7 @@ import { decodeDammFees } from './damm-fees';
 import { FEE_AUDIT_VERSION } from './fee-audit-version';
 import type { Receipt, FeeReceipt, FeeAmount } from './model';
 import { solUsdSnapshot } from './usd-price';
-import { volumeUsd } from './savings';
+import { volumeUsd } from './receipts/savings';
 import { simulationFailure } from './simulation';
 
 export function pendingFees(note: string, state: FeeReceipt['state'] = 'PENDING'): FeeReceipt {

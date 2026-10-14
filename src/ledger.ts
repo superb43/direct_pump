@@ -1,7 +1,7 @@
 import { FEE_AUDIT_VERSION } from './fee-audit-version';
 import type { LedgerTrade, Savings } from './model';
-import { EMPTY_SAVINGS, updateSavings } from './savings';
-import { cleanReceipt } from './receipt-diagnostics';
+import { EMPTY_SAVINGS, updateSavings } from './receipts/savings';
+import { cleanReceipt } from './receipts/receipt-diagnostics';
 
 const auditState=(r:import('./model').Receipt)=>r.feeManifest?.length&&(!r.feeReceipt||r.feeReceipt.state==='PENDING'||r.feeReceipt.auditVersion!==FEE_AUDIT_VERSION)?'PENDING':'DONE';
 let opened: Promise<IDBDatabase> | undefined;

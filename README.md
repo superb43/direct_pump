@@ -5,11 +5,10 @@
 <h1 align="center">Direct Pump</h1>
 
 <p align="center"><strong>Keep the terminal. Skip the terminal fee.</strong></p>
-<p align="center">Your execution layer for Axiom, GMGN, and FOMO Family.</p>
-<p align="center"><strong>0% added terminal fees. Phantom-approved (Basic). Open source.</strong></p>
-<p align="center">Trade supported Solana tokens without leaving the charts you already use. Network, protocol, and other execution costs still apply.</p>
-<p align="center">Basic trades require your approval in Phantom. Pro executes reviewed orders through your self-hosted server wallet.</p>
-<p align="center"><a href="#quick-start">Install</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="Docs/PROJECT.md#pro-setup">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
+<p align="center">Your execution layer for Axiom, GMGN, and FOMO</p>
+<p align="center"><strong>0% added terminal fees. Phantom-approved. Open source</strong></p>
+<p align="center">Trade supported Solana tokens without leaving the charts you already use</p>
+<p align="center"><a href="https://chromewebstore.google.com/detail/direct-pump/ipklpacekegiifhkfgmlgojjokdjocfh">Install from Chrome Web Store</a> · <a href="#basic-vs-pro">Basic / Pro</a> · <a href="Docs/PROJECT.md#pro-setup">Set up Pro</a> · <a href="https://t.me/+bWgImSypdyBiODNl">Feedback</a></p>
 
 ### Basic mode · Trading panel
 
@@ -19,7 +18,6 @@
 
 <img src="Docs/media/basic-trade.png" width="390" alt="Basic mode: SOL buy presets, percentage sells, holdings value, and estimated net PnL">
 
-> Screenshots show the actual interface with synthetic sample data. Balances, returns, and receipts are illustrative, not real trading results. This README shows Basic mode only; [Pro screenshots and setup](Docs/PROJECT.md#pro-setup) are in the project guide.
 
 ## Why I built it
 
@@ -33,15 +31,26 @@ So I built Direct Pump. It keeps the discovery tools I already use and adds exec
 
 ## Core features
 
-- **Trade without leaving the token page.** Recognizes the current Solana token on GMGN, AXIOM, and FOMO Family, reducing the need to copy addresses between sites.
+Both modes recognize the current Solana token on GMGN, AXIOM, and FOMO Family, so you can trade without leaving the token page. Direct Pump adds no platform or referral fee; protocol fees, network and priority fees, and account setup costs may still apply.
+
+### Basic
+
 - **Quick SOL buys and percentage sells.** Use presets or a custom SOL amount to buy, and sell 25%, 50%, 75%, or 100% of your holdings. Basic keeps manual Phantom approval for every trade.
 - **Holdings and estimated net PnL.** View tracked holdings, their value and age, and estimated net returns that account for cost basis and estimated exit costs. USD and SOL displays are available.
 - **Average entry on the chart.** Shows an `Avg Entry` line on supported charts when confirmed holdings and fills can be verified, using the chart's token-price or market-cap axis.
-- **No added terminal fee.** Direct Pump does not add a platform or referral fee. Protocol fees, network and priority fees, and account setup costs may still apply.
 - **Execution receipts.** Inspect protocol and network costs, transaction status, and Solscan links. The dashboard groups daily fees and locally tracked receipts.
-- **Pro conditional orders.** Self-hosted execution supports USD market-cap (MC) limits, take profit, stop loss, TP/SL brackets, trailing exits, and up to ten split-exit steps. Buy orders can attach an exit strategy that activates after a confirmed fill.
 
 `Fee Saved` is a comparison benchmark: **1% of verified turnover with recorded USD pricing**, treated as a hypothetical additional terminal fee. It is not a claim about another platform's current rate or your actual net profit. Estimated PnL and page prices may differ from execution results.
+
+### Pro
+
+- **Conditional orders.** Self-hosted execution supports USD market-cap (MC) limits, take profit, stop loss, TP/SL brackets, trailing exits, and up to ten split-exit steps. Buy orders can attach an exit strategy that activates after a confirmed fill.
+- **Instant trading.** Market orders submit directly by default; Limit orders require confirmation by default. Set Market and Limit confirmation independently in Settings, or choose to skip future confirmations from an order review.
+- **Trading profiles.** Save up to eight profiles with SOL buy presets, percentage sell presets, slippage, priority fees, network budgets, and order expiry. Switch profiles directly in the Trade tab.
+- **Hotkeys.** Enable hotkeys for the current panel session and hold Space with a configured buy/sell key to use a preset. Assign up to eight keys per side. Browser shortcuts are configured through Chrome's extension shortcuts page.
+- **Positions and holdings.** Track current value, fee-inclusive SOL cost basis, realized PnL, net open PnL, and unrecovered SOL for assets traded through Pro. Position details show USD estimates alongside SOL values, average entry cost, and available/reserved token quantities.
+- **Sell Initials.** Estimate and review the token quantity needed to recover outstanding SOL from available holdings. Insufficient inventory or incomplete history blocks recovery. Market changes may leave a remainder, and no additional sell is automatic.
+- **Order tracking.** See estimated USD order values, remaining split-exit percentages, and trailing high/current/trigger MC. Edit, pause, or cancel open orders from the Orders tab.
 
 ## Basic vs Pro
 
@@ -49,17 +58,23 @@ Basic and Pro are two execution modes in the same extension. Pro currently uses 
 
 | Feature | Basic | Pro |
 | --- | :---: | :---: |
-| Instant Trade | ❌ | ✅ |
-| Limit Orders | ❌ | ✅ |
-| TP/SL & Trailing | ❌ | ✅ |
-| Split Exit | ❌ | ✅ |
-| Entry Protection | ❌ | ✅ |
-| Background Orders | ❌ | ✅ |
+| Buy/Sell Presets & Holdings | ✅ | ✅ |
+| Instant Trade & Confirmation Settings | ❌ | ✅ |
+| Trading Profiles & Hotkeys | ❌ | ✅ |
+| Conditional Orders (Limit, TP/SL, Trailing, Split Exit) | ❌ | ✅ |
+| Realized PnL & Sell Initials | ❌ | ✅ |
+| Order Tracking & Management | ❌ | ✅ |
 | Chrome / Telegram Alerts | ❌ | ✅ |
 
 `Instant Trade` skips a separate Phantom approval. Registered orders run while your server and signer are online.
 
 Use **Basic** for trades you approve yourself, or **Pro** for reviewed conditional orders and exit strategies. Pro does not import your Phantom key. [Set up Pro and explore its screens →](Docs/PROJECT.md#pro-setup)
+
+### Pro · Orders
+
+Review open orders with estimated USD values, remaining split-exit percentages, and trailing high/current/trigger MC. Orders run while your personal server and signer are online.
+
+<img src="Docs/media/pro-orders.png" width="390" alt="Pro Orders: estimated USD values, remaining split-exit percentage, and an active trailing exit with high, current, and trigger market caps">
 
 ## Basic mode screenshots
 
@@ -75,33 +90,19 @@ Configure buy/sell presets, slippage, priority fees, RPC, and optional spend lim
 
 ## Quick start
 
-### 1. Build
+### 1. Install from Chrome Web Store
 
-Install Node.js **24 LTS** and npm. This is the current verification/build target for the extension and Pro server.
+1. Open [Direct Pump on the Chrome Web Store](https://chromewebstore.google.com/detail/direct-pump/ipklpacekegiifhkfgmlgojjokdjocfh) in Chrome.
+2. Click **Add to Chrome** and confirm the installation.
+3. Pin Direct Pump to the toolbar. Open a supported Solana token page and click its icon to open the side panel.
 
-```sh
-git clone https://github.com/superb43/direct_pump.git
-cd direct_pump
-npm ci
-npm run verify
-```
-
-### 2. Load the extension
-
-1. Open `chrome://extensions` in Chrome or `brave://extensions` in Brave.
-2. Enable **Developer mode** and choose **Load unpacked**.
-3. Select this repository's `.output/chrome-mv3` directory.
-4. Pin Direct Pump to the toolbar. Open a supported Solana token page and click its icon to open the side panel.
-
-To update, **reload the existing extension** and refresh the token page. Avoid uninstalling it if you want to retain settings and local receipts.
-
-### 3. Use Basic
+### 2. Use Basic
 
 Connect Phantom and review your RPC, slippage, fees, and presets in Settings. Choose a buy amount or sell percentage, then inspect and approve the transaction in Phantom.
 
 Supported direct SOL routes do not require a Jupiter key. Non-SOL pairs and routed venues require **your own Jupiter API key**, subject to your API plan. Supporting a token page does not guarantee every token, liquidity source, or route is tradable.
 
-### 4. Explore Pro
+### 3. Explore Pro
 
 You can browse Pro without a server. Real execution requires pairing your personal server, unlocking the signer on its private console, and explicitly enabling Pro.
 
@@ -117,6 +118,17 @@ Slippage limits and order conditions do not guarantee a fill or execution price.
 
 WXT · Vanilla TypeScript · Chrome Manifest V3 · Solana. One side panel and shared execution logic, without a frontend framework.
 
+To build from source, install Node.js **24 LTS** and npm, then run:
+
+```sh
+git clone https://github.com/superb43/direct_pump.git
+cd direct_pump
+npm ci
+npm run verify
+```
+
+Open `chrome://extensions` in Chrome, enable **Developer mode**, choose **Load unpacked**, and select `.output/chrome-mv3`. After rebuilding, reload the existing extension and refresh the token page. Avoid uninstalling it if you want to retain settings and local receipts.
+
 ```sh
 npm run check:docs  # Local documentation links and anchors
 npm run check       # Extension and server type checks
@@ -126,7 +138,7 @@ npm run build:pro   # server-dist/cli.mjs
 npm run verify      # Run the checks and builds above
 ```
 
-Run `npm run test:sites` separately for the site DOM gate. It requires a running Brave instance and Apple Events JavaScript access. Network tests are opt-in; offline verification performs no real signing, trading, or deployment.
+Run `npm run test:sites` separately for the site DOM gate. Network tests are opt-in; offline verification performs no real signing, trading, or deployment.
 
 - [Pro setup](Docs/PROJECT.md#pro-setup) · [Operations and recovery](Docs/PROJECT.md#pro-operations)
 

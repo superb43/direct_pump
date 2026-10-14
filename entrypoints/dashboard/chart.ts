@@ -1,5 +1,5 @@
-import type { DailyFees, DisplayUnit } from '../../src/dashboard-fees';
-import { receiptSol, receiptUsd } from '../../src/receipt-format';
+import type { DailyFees, DisplayUnit } from '../../src/receipts/dashboard-fees';
+import { receiptSol, receiptUsd } from '../../src/receipts/receipt-format';
 
 export function renderFeeChart(container: HTMLElement, days: DailyFees[], unit: DisplayUnit): void {
   container.replaceChildren();

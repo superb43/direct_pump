@@ -1,5 +1,5 @@
 import {canonicalJson,validateProSpec,usdUnits,unitsUsd,type ProOrder,type ProSpec,type ProExitStep} from './contracts';
-import type {ChartEntry} from '../chart-entry';
+import type {ChartEntry} from '../chart/chart-entry';
 
 export class PanelReview<T> {
   private revision=0; private approved?:{spec:T;id:string;session?:ProSession};

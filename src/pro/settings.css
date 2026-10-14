@@ -1,0 +1,11 @@
+.pro-settings-connection>summary{font-weight:600;font-size:16px;cursor:pointer}
+.pro-settings .pro-settings-description{margin:12px 0 16px;font-size:13px;line-height:1.6;color:var(--dp-muted)}
+.pro-settings .pro-settings-notifications{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:12px;margin:24px 0;font-size:14px}
+.pro-settings .pro-settings-notifications input{appearance:none;position:relative;flex:0 0 44px;width:44px!important;height:24px;min-height:24px!important;margin:0!important;padding:0;border:1px solid var(--dp-border);border-radius:12px;background:var(--dp-field);cursor:pointer}
+.pro-settings-notifications input::before{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--dp-muted)}
+.pro-settings-notifications input:checked{background:var(--dp-brand);border-color:var(--dp-brand)}
+.pro-settings-notifications input:checked::before{left:23px;background:var(--dp-bg)}
+.pro-settings-notifications input:disabled{opacity:.48;cursor:default}
+.pro-settings-notifications input:focus-visible{outline:2px solid var(--dp-focus);outline-offset:2px}
+
+.pro-settings-connection>.pro-settings-heading{margin:0;padding:0}

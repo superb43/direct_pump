@@ -9,9 +9,9 @@ import {DLMM_PROGRAM_ID,dlmmPriceVaults} from '../dlmm';
 import type {PageTarget} from '../model';
 
 export async function priceAccounts(rpc:Connection,target:PageTarget,mint:string):Promise<string[]>{
-  const route=await resolveExecution(rpc,target);
+  const route=await resolveExecution(rpc,target,true);
   if(route.mint.toBase58()!==mint||route.account.equals(route.mint))return [];
-  const info=await rpc.getAccountInfo(route.account);if(!info)return [];
+  const info=('accountInfo' in route?route.accountInfo:undefined)??await rpc.getAccountInfo(route.account);if(!info)return [];
   const keys:PublicKey[]=[route.account];
   if(info.owner.equals(PUMP_AMM_PROGRAM_ID)){const pool=PUMP_AMM_SDK.decodePool(info);keys.push(pool.poolBaseTokenAccount,pool.poolQuoteTokenAccount);}
   else if(info.owner.equals(CP_AMM_PROGRAM_ID)){const pool=await new CpAmm(rpc).fetchPoolState(route.account);keys.push(pool.tokenAVault,pool.tokenBVault);}

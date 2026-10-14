@@ -140,7 +140,7 @@ export type LedgerTrade = { signature: string; wallet: string; mint: string; sid
 export type MarketHint = {mint:string;observedAt:number;priceUsd?:string;marketCapUsd?:string;source:'GMGN page'|'Axiom page'|'FOMO page'};
 export type QuoteIssue = {kind:'RPC'|'ROUTE'|'USD';message:string;retryable:boolean;retryAt?:number;status?:number};
 export type PositionSnapshot = {
- chartEntry?:import('./chart-entry').ChartEntry;
+ chartEntry?:import('./chart/chart-entry').ChartEntry;
  chartEntryNote?:string;
  wallet:string;mint:string;balanceRaw:string;decimals:number;supplyRaw:string;updatedAt:number;balanceUpdatedAt?:number;
  openedAt?:number;

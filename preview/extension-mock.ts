@@ -4,6 +4,7 @@ import { parseSol } from '../src/amounts';
 import { DEFAULT_SETTINGS, type WorkerRequest } from '../src/model';
 import { validateProSpecV2, type ProRequest, type ProSettings, type ProOrder, type ProEvent, type ProHealth } from '../src/pro/contracts';
 import { marketCapUsd } from '../src/pro/mc';
+import {defaultPreferences,validateTradingPreferences} from '../src/pro/trading-preferences';
 
 let settings = { ...DEFAULT_SETTINGS };
 const scenario = new URL(location.href).searchParams;
@@ -40,6 +41,7 @@ let proSigner:ProHealth['signer']=scenario.get('pro')==='locked'?'LOCKED':'READY
 const mockStored:Record<string,unknown>=JSON.parse(localStorage.getItem('dp-pro-mock-storage')??'{}');
 const proOrders:ProOrder[]=JSON.parse(localStorage.getItem('dp-pro-mock-orders')??'[]'),proEvents:ProEvent[]=[];
 let mockSolAvailable='1630000000';
+let releasePendingWrite:(()=>void)|undefined;
 let mockOrderAckLost=false;let releaseProPreview:(()=>void)|undefined;
 const proPorts:Array<{name:string;onMessage:ReturnType<typeof mockEvent>;onDisconnect:ReturnType<typeof mockEvent>;postMessage:(message:unknown)=>void;disconnect:()=>void}>=[];
 const proBase={version:2 as const,basis:'MC' as const,side:'SELL' as const,target,mint,amountRaw:'10000000000',decimals:6,expiresAt:Date.now()+86400000,slippageBps:100,priorityFeeLamports:100000,maxNetworkLamports:'5000000'};
@@ -60,6 +62,8 @@ function publishPro(){
 }
 function changeProSettings(next:ProSettings){const oldValue=proSettings;proSettings={...next};onStorage.emit({proSettings:{oldValue,newValue:proSettings}},'local');}
 async function sendMockPro(request:ProRequest):Promise<unknown>{
+  if(request.action==='PREFERENCES_GET'){if(scenario.has('pro-preferences-fail'))return {ok:false,error:'Mock preferences unavailable.'};const defaults=defaultPreferences();defaults.confirmMarket=scenario.has('pro-confirm-market');return {ok:true,data:mockStored.proTradingPreferences===undefined?defaults:validateTradingPreferences(mockStored.proTradingPreferences)};}
+  if(request.action==='PREFERENCES_SAVE'){const preferences=validateTradingPreferences(request.preferences);mockStored.proTradingPreferences=preferences;localStorage.setItem('dp-pro-mock-storage',JSON.stringify(mockStored));return {ok:true,data:preferences};}
   if(request.action==='SETTINGS'&&scenario.get('pro')==='malformed-settings')return {ok:true,data:{serverId:'preview-server',deviceId:'preview-device',enabled:'false'}};
   if(request.action==='SETTINGS'){
     if(scenario.get('pro')==='settings-error')return {ok:false,error:'Mock mode settings unavailable.'};
@@ -82,7 +86,9 @@ async function sendMockPro(request:ProRequest):Promise<unknown>{
   if(method==='GET'&&scenario.has('pro-token-fail')&&path.startsWith('/v1/wallet?'))return{ok:false,error:'Mock token mint unavailable.'};
   if(method!=='GET'&&path.startsWith('/v2/')&&(request.expectedSession?.serverId!=='preview-server'||request.expectedSession.deviceId!=='preview-device'||request.expectedSession.wallet!==serverWallet))return{ok:false,error:'Reviewed mock wallet/session changed. Review again.'};
   if(method==='POST'&&path==='/v1/resume-engine'){if(proSigner!=='READY')return{ok:false,error:'Signer locked.'};proEngine='RUNNING';return{ok:true,data:{}};}
-  if(method==='GET'&&path==='/v1/health')return{ok:true,data:{apiVersion:1,serverId:'preview-server',wallet:serverWallet,signer:proSigner,engine:proEngine,at:Date.now(),capabilities:scenario.get('pro')==='old-server'?[]:['mc-orders-v2','exit-strategies-v2','withdrawals-v1'],limits:{maxBuyLamports:'1000000000',dailyBuyLamports:'10000000000',maxNetworkLamports:'5000000'}} satisfies ProHealth};
+  if(method==='GET'&&path==='/v1/health')return{ok:true,data:{apiVersion:1,serverId:'preview-server',wallet:serverWallet,signer:proSigner,engine:proEngine,at:Date.now(),capabilities:scenario.get('pro')==='old-server'?[]:['mc-orders-v2','exit-strategies-v2','withdrawals-v1','portfolio-v1','recover-initials-preview-v1'],limits:{maxBuyLamports:'1000000000',dailyBuyLamports:'10000000000',maxNetworkLamports:'5000000'}} satisfies ProHealth};
+  if(method==='GET'&&path.startsWith('/v1/portfolio')){if(scenario.has('pro-portfolio-fail'))return {ok:false,error:'Mock historical RPC unavailable.'};const unavailable=scenario.has('pro-history-missing');return {ok:true,data:{wallet:serverWallet,updatedAt:Date.now(),partial:unavailable,rows:[{mint,target,decimals:6,totalRaw:'50000000000',reservedRaw:'12500000000',availableRaw:'37500000000',valueLamports:'175000000',solUsdUnits:'120000000000000',status:unavailable?'UNAVAILABLE':'READY',...unavailable?{reason:'Acquisition history is incomplete.'}:{costBasisLamports:'100000000',realizedPnlLamports:'20000000',unrealizedPnlLamports:'70000000',unrecoveredLamports:scenario.has('pro-recovery-done')?'0':'80000000'}}]}};}
+  if(method==='POST'&&path==='/v2/recover-initials/preview'){const spec=validateProSpecV2((request.body as {spec:unknown}).spec);return {ok:true,data:scenario.has('pro-history-missing')?{status:'UNAVAILABLE',targetLamports:'0',quoteAt:Date.now(),reason:'Acquisition history is incomplete.'}:scenario.has('pro-recovery-shortfall')?{status:'INSUFFICIENT',targetLamports:'200000000',shortfallLamports:'73750000',quoteAt:Date.now(),reason:'Available tokens cannot recover the original SOL.'}:scenario.has('pro-recovery-done')?{status:'RECOVERED',targetLamports:'0',quoteAt:Date.now(),reason:'Initial SOL already recovered.'}:{status:'READY',targetLamports:'80000000',expectedNetLamports:'80000001',quoteAt:Date.now(),spec:{...spec,amountRaw:'24285714286'}}};}
   if(method==='GET'&&path.startsWith('/v1/wallet'))return{ok:true,data:[{mint:solMint,decimals:9,totalRaw:'1750000000',reservedRaw:'120000000',availableRaw:mockSolAvailable},{mint,decimals:6,totalRaw:'50000000000',reservedRaw:'12500000000',availableRaw:'37500000000'}]};
   if(method==='GET'&&/^\/v[12]\/orders$/.test(path))return mockOrderAckLost?{ok:false,error:'Mock connection lost; reload to reconcile the registered order.'}:{ok:true,data:structuredClone(proOrders)};
   if(method==='GET'&&path==='/v2/strategies')return{ok:true,data:structuredClone(proOrders.filter(order=>order.spec.kind==='STRATEGY'))};
@@ -153,18 +159,21 @@ async function send(request: WorkerRequest) {
   return { ok: true };
 }
 Object.assign(globalThis, { chrome: {
+  windows:{getLastFocused:async()=>({id:1,focused:!scenario.has('pro-window-unfocused')})},
+  scripting:{executeScript:async(options:{func:()=>unknown})=>[{frameId:0,documentId:'preview-document',result:String(options.func).includes('document.activeElement')?false:{url:target.pageUrl}}]},
+  commands:{getAll:async()=>[{name:'pro-buy-1',description:'Buy slot 1',shortcut:'Alt+Shift+1'},{name:'pro-buy-2',description:'Buy slot 2',shortcut:'Alt+Shift+2'},{name:'pro-sell-1',description:'Sell slot 1',shortcut:'Alt+Shift+3'},{name:'pro-sell-4',description:'Sell slot 4',shortcut:'Alt+Shift+4'}]},
   runtime: { id: 'preview', getURL:(path:string)=>`chrome-extension://preview${path}`,getManifest: () => ({ version: new URL(location.href).searchParams.has('baseline')?'0.7.5':'0.7.9' }), sendMessage: send, onMessage,connect:({name}:{name:string})=>{const port={name,onMessage:mockEvent(),onDisconnect:mockEvent(),postMessage:(_message:unknown)=>{},disconnect(){const index=proPorts.indexOf(port);if(index>=0)proPorts.splice(index,1);port.onDisconnect.emit();}};proPorts.push(port);return port;} },
-  storage:{onChanged:onStorage,local:{get:async()=>({...mockStored,proSettings:{...proSettings}}),set:async(value:Record<string,unknown>&{proSettings?:ProSettings})=>{if(value.proSettings)changeProSettings(value.proSettings);for(const [key,data]of Object.entries(value))if(key!=='proSettings')mockStored[key]=data;localStorage.setItem('dp-pro-mock-storage',JSON.stringify(mockStored));},remove:async(keys:string|string[])=>{for(const key of Array.isArray(keys)?keys:[keys])delete mockStored[key];localStorage.setItem('dp-pro-mock-storage',JSON.stringify(mockStored));}}},
+  storage:{onChanged:onStorage,local:{get:async()=>({...mockStored,proSettings:{...proSettings}}),set:async(value:Record<string,unknown>&{proSettings?:ProSettings})=>{if(scenario.has('pro-pending-write-delayed')&&Object.keys(value).some(key=>key.startsWith('proOrderPending:'))){document.body.dataset.pendingWriteWaiting='true';await new Promise<void>(resolve=>{releasePendingWrite=resolve;});}if(value.proSettings)changeProSettings(value.proSettings);for(const [key,data]of Object.entries(value))if(key!=='proSettings')mockStored[key]=data;localStorage.setItem('dp-pro-mock-storage',JSON.stringify(mockStored));},remove:async(keys:string|string[])=>{for(const key of Array.isArray(keys)?keys:[keys])delete mockStored[key];localStorage.setItem('dp-pro-mock-storage',JSON.stringify(mockStored));}}},
   sidePanel:{open:async()=>{document.body.dataset.sidePanelOpened='true';}},
   permissions: { request: async () => !scenario.has('permissions-denied') },
   tabs: {
     create:async()=>{document.body.dataset.createdTabs=String(Number(document.body.dataset.createdTabs??0)+1);},
     update:async (_tab:number,properties:{url:string})=>{document.body.dataset.openedToken=properties.url;},
     onActivated, onUpdated,
-    query: async () => [{ id: 1, url: scenario.get('tab-url') ?? target.pageUrl }],
+    query: async () => [{ id: 1, windowId:1,url: scenario.get('tab-url') ?? target.pageUrl }],
     sendMessage: async (_tab: number, message: { type: string; request: WorkerRequest }) => message.type === 'PANEL_CONTEXT' ? { target: new URL(location.href).searchParams.has('empty') ? null : target, market:{mint,observedAt:Date.now(),priceUsd:marketPrice,...scenario.has('pro')?{marketCapUsd:'420000'}:{},source:marketSource()} } : message.type === 'PANEL_REQUEST' ? send(message.request) : { ok: true },
   },
 } });
 
 Object.assign(globalThis,{changeMockProWallet:(address:string)=>{serverWallet=address;publishPro();},unpairMockPro:()=>{changeProSettings({...proSettings,serverUrl:'',serverId:undefined,deviceId:undefined});publishPro();},releaseMockProPreview:()=>{releaseProPreview?.();releaseProPreview=undefined;},recoverMockProData:()=>{for(const key of ['pro-balance-fail','pro-events-fail','pro-token-fail'])scenario.delete(key);publishPro();},pushMockProBalance:(raw:string)=>{mockSolAvailable=raw;publishPro();},changeMockMarketPrice:(price:string)=>{marketPrice=price;},releaseMockPrices:()=>{previewPricesReady=true;onMessage.emit({type:'PORTFOLIO_UPDATED',wallet},{id:'preview'});},pushMockPrice:(quote:string,mode:import('../src/model').PriceMode='LIVE')=>{mockQuote=quote;mockMode=mode;onMessage.emit({type:'PORTFOLIO_UPDATED',wallet},{id:'preview'});}});
-Object.assign(globalThis,{changeMockProWallet:(next:string)=>{serverWallet=next;publishPro();}});
+Object.assign(globalThis,{releaseMockPendingWrite:()=>{releasePendingWrite?.();releasePendingWrite=undefined;},changeMockProWallet:(next:string)=>{serverWallet=next;publishPro();}});

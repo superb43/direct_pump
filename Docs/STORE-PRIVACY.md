@@ -1,6 +1,6 @@
 # Chrome Web Store — Privacy tab
 
-Copy these fields into the developer dashboard for Direct Pump 0.7.9. This file documents the form; including it in an extension ZIP does not fill or certify the form. Based on the current extension and [published privacy policy](https://github.com/superb43/direct_pump/blob/main/Docs/PRIVACY.md).
+Copy these fields into the developer dashboard for Direct Pump 0.8.0. This file documents the form; including it in an extension ZIP does not fill or certify the form. Based on the current extension and [published privacy policy](https://github.com/superb43/direct_pump/blob/main/Docs/PRIVACY.md).
 
 ## Single purpose description
 

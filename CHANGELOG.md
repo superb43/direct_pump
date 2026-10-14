@@ -14,6 +14,9 @@
 - Add server-verified position accounting for cost basis, realized/open PnL and unrecovered SOL, plus Sell Initials quantity estimates. Recovery uses the existing authorized sell path; it never schedules an automatic follow-up.
 - Improve order values, split-exit progress, trailing MC details and self-hosted onboarding.
 
+- Fence cross-window profile/confirmation changes at the native worker before dispatch, preserving pending order UUIDs for explicit recovery.
+- Refresh the final Sell Initials quantity quote after slower searches and reject changed recovery targets.
+
 ### Documentation and maintenance
 
 - Expand README Basic/Pro features, setup instructions and screenshots; include privacy and store-listing preparation documents.
@@ -29,6 +32,6 @@
 
 - Node.js 24: type checks, offline regression tests, extension/Pro builds and publication/license gates.
 - Brave: site DOM fixtures and live read-only token readers for GMGN, Axiom (POOL identity) and FOMO Family.
-- Synthetic Chromium: Pro trading/profile/confirmation/hotkey/recovery flows and narrow-panel screenshots. These checks use mocks, not a funded wallet or live signer.
+- Synthetic Chromium: Pro trading/profile/confirmation/hotkey/recovery flows and narrow-panel screenshots. These checks use mocks, not a funded wallet or live signer. OS-level browser shortcut dispatch remains unverified because automated CDP key input did not emit chrome.commands.onCommand.
 - Opt-in provider integration tests are skipped. No funded signing, trading, withdrawal, live alert or production server deployment is performed for verification.
 - Dependency audits retain known findings; release publication requires advisory-specific reachability evidence and independent review. See the release notes for the final audit disposition and remaining runtime limitations.

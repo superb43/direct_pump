@@ -96,7 +96,7 @@ export function mountTradingPreferences(container: HTMLElement, options: Trading
   }, events);
   function update(value: ProTradingPreferences) {
     if (!alive) return;
-    ++generation; busy = false; draft = validateTradingPreferences(value); render();
+    ++generation; busy = false; draft = validateTradingPreferences(value); render(); node('status').textContent = 'Trading preferences updated.';
   }
   controls(); const version = ++generation;
   void options.load().then(value => { if (!alive || version !== generation) return; draft = validateTradingPreferences(value); render(); node('status').textContent = ''; })

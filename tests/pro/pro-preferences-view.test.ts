@@ -57,6 +57,18 @@ describe('Pro preference settings', () => {
     const view = mount({ save: async () => { throw new Error('Disk failure'); } }); await tick();
     view.node('save').fire('click'); await tick(); expect(view.node('status').textContent).toContain('were not saved'); expect(view.changed).not.toHaveBeenCalled(); view.controller.destroy();
   });
+  it.each([false, true])('settles storage updates before a pending save reply (different value: %s)', async different => {
+    const pending = deferred<ReturnType<typeof defaultPreferences>>(), view = mount({ save: () => pending.promise }); await tick();
+    view.input('profileName').value = 'Saved'; view.node('save').fire('click');
+    expect(view.node('status').textContent).toBe('Saving trading preferences…'); expect(view.node('save').disabled).toBe(true);
+    const saved = defaultPreferences(); saved.profiles[0]!.name = 'Saved';
+    const stored = structuredClone(saved); if (different) stored.profiles[0]!.name = 'Other view';
+    view.controller.update(stored);
+    expect(view.node('status').textContent).toBe('Trading preferences updated.'); expect(view.node('save').disabled).toBe(false);
+    pending.resolve(saved); await tick();
+    expect(view.input('profileName').value).toBe(stored.profiles[0]!.name); expect(view.node('status').textContent).toBe('Trading preferences updated.');
+    expect(view.changed).not.toHaveBeenCalled(); view.controller.destroy();
+  });
   it('drops late save completion and listeners after teardown', async () => {
     const pending = deferred<ReturnType<typeof defaultPreferences>>(), view = mount({ save: () => pending.promise }); await tick();
     view.node('save').fire('click'); view.controller.destroy(); pending.resolve(defaultPreferences()); await tick();

@@ -79,7 +79,7 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
   type Destination='trade'|'orders'|'wallet'|'settings';
   let connectionSettings:ReturnType<typeof mountProSettings>|undefined;
   let destination:Destination='trade',unknownOrders=0,withdrawalPending=false;
-  let preferences:ProTradingPreferences|undefined,preferencesVersion=0,confirmationSaving=false,acceptedBinding:HotkeyBinding|undefined,hotkeysEnabled=false,hotkeySyncKey='';
+  let preferences:ProTradingPreferences|undefined,preferencesVersion=0,confirmationSaving=false,confirmationSaveValue:string|undefined,acceptedBinding:HotkeyBinding|undefined,hotkeysEnabled=false,hotkeySyncKey='';
   let preferencesView:ReturnType<typeof mountTradingPreferences>|undefined,hotkeys:ReturnType<typeof mountProHotkeys>|undefined;
   let lastTradeGestureAt=-Infinity,lastTradeGestureKey='';
   let orderRows:ProOrder[]=[];
@@ -93,10 +93,10 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
   async function refreshWallet(){if(health&&settings?.deviceId)try{await withdrawals.refresh(health,settings.enabled,settings.deviceId,wallet.withdrawalVisible());}catch(error){status(error instanceof Error?error.message:'Wallet unavailable.');}}
   async function navigate(next:Destination){if(next==='settings'&&destination!==next)connectionSettings?.collapseConnection();selectView(next);controls();if(next==='settings'&&!preferencesView){preferencesView=mountTradingPreferences(node('trading-preferences'),{load:loadPreferences,save:savePreferences,changed:applyPreferences,limits:()=>health?.limits,preview,onSetup:openSetup});void readProHotkeyShortcuts().then(commands=>{if(alive)node('shortcuts').textContent=commands.map(command=>`${command.description??command.name}: ${command.shortcut||'Unassigned'}`).join('\n');}).catch(()=>{if(alive)node('shortcuts').textContent='Browser shortcuts unavailable.';});}if(next==='settings'&&!connectionSettings&&!preview)connectionSettings=mountProSettings(node('server-settings'));if(next==='settings'&&preview)node('server-settings').innerHTML='<h3>Server connection</h3><p>Choose your own server or follow managed Pro launch updates.</p><button type="button" data-start-pro>Set up Pro</button>';if(next==='wallet'){if(withdrawalPending)wallet.showWithdraw();await refreshWallet();}}
   const captureSession=()=>{if(!session)throw new Error('Server wallet is still loading.');return structuredClone(session);};
-  const api=async(method:string,path:string,body?:unknown,expectedSession?:ProSession)=>{
+  const api=async(method:string,path:string,body?:unknown,expectedSession?:ProSession,expectedPreferences?:string)=>{
     if(preview){openSetup();throw new Error('Set up Pro before using server actions.');}
     const owner=method==='GET'?undefined:requireReviewSession(expectedSession??session,session);
-    return sendPro({action:'REQUEST',method,path,body,...owner?{expectedSession:owner}:{}});
+    return sendPro({action:'REQUEST',method,path,body,expectedPreferences,...owner?{expectedSession:owner}:{}});
   };
   function refreshChartEntry(owner:ProSession,version:number){
     if(!chartEntry||!alive||document.hidden)return;
@@ -122,12 +122,28 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
   async function loadPreferences(){return validateTradingPreferences(await sendPro({action:'PREFERENCES_GET'}));}
   async function savePreferences(value:ProTradingPreferences){return validateTradingPreferences(await sendPro({action:'PREFERENCES_SAVE',preferences:value}));}
   function renderPresets(){const profile=activeProfile(preferences??defaultPreferences());container.querySelector('.pro-presets')!.innerHTML=(side==='BUY'?profile.buyPresets:profile.sellPresets.map(String)).map(value=>`<button type="button" data-preset="${html(value)}">${html(value)}${side==='SELL'?'%':solIcon()}</button>`).join('');}
-  function applyPreferences(value:ProTradingPreferences){
+  function applyPreferences(value:ProTradingPreferences,preserveReview=false){
     if(!alive)return;const next=validateTradingPreferences(value),changed=preferences===undefined||canonicalJson(next)!==canonicalJson(preferences);
     preferences=next;if(!changed)return;preferencesVersion++;const profile=activeProfile(next);
     const select=node<HTMLSelectElement>('active-profile');select.replaceChildren(...next.profiles.map(row=>{const option=document.createElement('option');option.value=row.id;option.textContent=row.name;return option;}));select.value=next.activeProfileId;
-    if(!durablePending){invalidate();field('slippage').value=String(profile.slippageBps/100);field('priority').value=rawToAmount(String(profile.priorityFeeLamports),9);field('budget').value=rawToAmount(profile.maxNetworkLamports,9);field('expires').value=String(profile.expiresHours);}
+    if(!durablePending&&!preserveReview){invalidate();field('slippage').value=String(profile.slippageBps/100);field('priority').value=rawToAmount(String(profile.priorityFeeLamports),9);field('budget').value=rawToAmount(profile.maxNetworkLamports,9);field('expires').value=String(profile.expiresHours);}
     renderPresets();controls();
+  }
+  const preferencesChanged=(changes:Record<string,Browser.storage.StorageChange>,area:string)=>{
+    if(!alive||preview||area!=='local'||!('proTradingPreferences' in changes))return;
+    try{
+      const value=changes.proTradingPreferences!.newValue===undefined?defaultPreferences():validateTradingPreferences(changes.proTradingPreferences!.newValue);
+      applyPreferences(value,confirmationSaving&&canonicalJson(value)===confirmationSaveValue);preferencesView?.update(value);
+    }catch{
+      preferences=undefined;preferencesVersion++;if(!durablePending)invalidate();controls();status('Trading preferences are unavailable. Reload settings before trading.');
+    }
+  };
+  browser.storage?.onChanged?.addListener(preferencesChanged);
+  async function checkPreferences(version:number){
+    const value=await loadPreferences();
+    if(!alive||version!==preferencesVersion)throw new Error('Trading preferences changed. Start the order again.');
+    applyPreferences(value);
+    if(version!==preferencesVersion)throw new Error('Trading preferences changed. Start the order again.');
   }
   function clearPortfolio(){portfolioSequence++;portfolio=undefined;if(orderRows.length)renderOrders(orderRows);node('position').replaceChildren();node('pro-holdings').replaceChildren();node('position').hidden=true;node('pro-holdings').hidden=true;}
   function portfolioMoney(value:string|undefined){if(value===undefined)return 'Unavailable';return `${value.startsWith('-')?'-':''}${compactAmount(value.replace(/^-/,''),9)} SOL`;}
@@ -252,7 +268,7 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
   async function prepareOrder(spec:Spec,owner:ProSession,binding:HotkeyBinding,version:number,contextVersion:number,prefsVersion:number,recoveryNote?:string){
     validateProSpecV2(spec);await assertProTradeBinding(binding);checkPrepared(owner,version,contextVersion,prefsVersion);
     const result=await api('POST','/v2/preview',{spec},owner) as {spec:Spec;summary:{marketCapUsd:string;quoteAt:number;supplyRaw:string;tokenDecimals:number}};
-    checkPrepared(owner,version,contextVersion,prefsVersion);if(canonicalJson(validateProSpecV2(result.spec))!==canonicalJson(validateProSpecV2(spec)))throw new Error('Server preview differs from the requested order. Start again.');
+    await checkPreferences(prefsVersion);checkPrepared(owner,version,contextVersion,prefsVersion);if(canonicalJson(validateProSpecV2(result.spec))!==canonicalJson(validateProSpecV2(spec)))throw new Error('Server preview differs from the requested order. Start again.');
     await assertProTradeBinding(binding);checkPrepared(owner,version,contextVersion,prefsVersion);review.accept(result.spec,version,editing?.id,owner);acceptedBinding=binding;verifiedSupply.set(spec.mint,{supplyRaw:result.summary.supplyRaw,decimals:result.summary.tokenDecimals,at:result.summary.quoteAt});reviewedOperation=editing?{operation:'edit',revision:editing.revision}:{operation:'create'};currentMc=result.summary.marketCapUsd;quoteAt=result.summary.quoteAt;renderMark();
     if(spec.exitStrategy||requiresTradeConfirmation(spec.kind,preferences!,reviewedOperation.operation)){renderReview(result.spec);if(recoveryNote){node('recovery-review').textContent=recoveryNote;node('recovery-review').hidden=false;}status('Confirm registers this exact order for automatic server execution.');}
     else if(destination!=='trade'){invalidate();status('Order not registered: Trade was left during preparation.');}
@@ -313,11 +329,11 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
     await browser.storage.local.set({[intentKey]:pending});if(!alive||intentKey!==pendingKey||!sameProSession(owner,session))return;durablePending=structuredClone(pending);unconfirmedId=pending.id;node<HTMLButtonElement>('back').disabled=true;controls();if(contextVersion!==epoch){reviewedOperation={operation:pending.operation,revision:pending.revision,action:pending.action};review.invalidate();review.accept(pending.spec,review.version(),pending.id,pending);renderReview(pending.spec,true);return;}
     const version=pending.spec.version===2?'v2':'v1';
     try{
-      requireApprovalLifetime();
+      await checkPreferences(configVersion);requireApprovalLifetime();
       if(binding){await assertProTradeBinding(binding);requireApprovalLifetime();if(!alive||contextVersion!==epoch||!sameProSession(owner,session))throw new Error('Token or wallet changed before submission.');}
-      if(pending.operation==='edit')await api('PATCH',`/${version}/orders/${pending.id}`,{revision:pending.revision,spec:pending.spec},owner);
-      else if(pending.operation==='retry'){const result=await api('POST',`/${version}/orders/${pending.id}/retry`,{revision:pending.revision,spec:pending.spec,action:pending.action},owner) as ProOrder;if(!pendingOrderAcknowledged(pending,result))throw new Error('Requested authorization outcome is not yet acknowledged.');}
-      else await api('POST',pending.spec.kind==='STRATEGY'?'/v2/strategies':'/v2/orders',{orderId:pending.id,spec:pending.spec},owner);
+      if(pending.operation==='edit')await api('PATCH',`/${version}/orders/${pending.id}`,{revision:pending.revision,spec:pending.spec},owner,canonicalJson(preferences));
+      else if(pending.operation==='retry'){const result=await api('POST',`/${version}/orders/${pending.id}/retry`,{revision:pending.revision,spec:pending.spec,action:pending.action},owner,canonicalJson(preferences)) as ProOrder;if(!pendingOrderAcknowledged(pending,result))throw new Error('Requested authorization outcome is not yet acknowledged.');}
+      else await api('POST',pending.spec.kind==='STRATEGY'?'/v2/strategies':'/v2/orders',{orderId:pending.id,spec:pending.spec},owner,canonicalJson(preferences));
       // Keep the record on navigation; a remount will reconcile this same UUID.
       if(!alive||contextVersion!==epoch||intentKey!==pendingKey)return;
       await clearPending(intentKey);invalidate();editing=undefined;status('Order registered. Check Orders for its execution status.');await refresh();
@@ -448,7 +464,7 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
   node('hotkeys').addEventListener('click',()=>{if(preview){openSetup();return;}hotkeysEnabled=!hotkeysEnabled;controls();},{signal:abort.signal});
   node('shortcut-settings').addEventListener('click',()=>{void browser.tabs.create({url:'chrome://extensions/shortcuts'}).catch(()=>status('Open chrome://extensions/shortcuts to configure keys.'));},{signal:abort.signal});
   node('active-profile').addEventListener('change',()=>{if(!preferences||busy||durablePending)return;const next={...preferences,activeProfileId:node<HTMLSelectElement>('active-profile').value};void run(async()=>{const saved=await savePreferences(next);if(!alive)return;applyPreferences(saved);preferencesView?.update(saved);status('Trading profile changed.');});},{signal:abort.signal});
-  node('skip-confirm-value').addEventListener('change',()=>{if(!preferences||busy||durablePending)return;const accepted=review.current(),checked=node<HTMLInputElement>('skip-confirm-value').checked;if(!['MARKET','LIMIT'].includes(accepted.spec.kind)||reviewedOperation.operation!=='create')return;const next={...preferences,[accepted.spec.kind==='MARKET'?'confirmMarket':'confirmLimit']:!checked};confirmationSaving=true;node<HTMLInputElement>('skip-confirm-value').disabled=true;controls();void savePreferences(next).then(saved=>{if(!alive)return;preferences=saved;preferencesVersion++;preferencesView?.update(saved);status('Confirmation setting saved. This order still requires Confirm.');}).catch(error=>{if(alive){node<HTMLInputElement>('skip-confirm-value').checked=false;status(error instanceof Error?error.message:'Confirmation setting was not saved.');}}).finally(()=>{if(alive){confirmationSaving=false;node<HTMLInputElement>('skip-confirm-value').disabled=false;controls();}});},{signal:abort.signal});
+  node('skip-confirm-value').addEventListener('change',()=>{if(!preferences||busy||durablePending)return;const accepted=review.current(),checked=node<HTMLInputElement>('skip-confirm-value').checked;if(!['MARKET','LIMIT'].includes(accepted.spec.kind)||reviewedOperation.operation!=='create')return;const next={...preferences,[accepted.spec.kind==='MARKET'?'confirmMarket':'confirmLimit']:!checked},saveVersion=preferencesVersion;confirmationSaving=true;confirmationSaveValue=canonicalJson(next);node<HTMLInputElement>('skip-confirm-value').disabled=true;controls();void savePreferences(next).then(saved=>{if(!alive||preferencesVersion!==saveVersion&&canonicalJson(preferences)!==canonicalJson(saved))return;applyPreferences(saved,canonicalJson(saved)===confirmationSaveValue);preferencesView?.update(saved);status('Confirmation setting saved. This order still requires Confirm.');}).catch(error=>{if(alive){node<HTMLInputElement>('skip-confirm-value').checked=false;status(error instanceof Error?error.message:'Confirmation setting was not saved.');}}).finally(()=>{if(alive){confirmationSaving=false;confirmationSaveValue=undefined;node<HTMLInputElement>('skip-confirm-value').disabled=false;controls();}});},{signal:abort.signal});
   container.addEventListener('invalid',event=>{const input=event.target as HTMLInputElement;if(input.form!==form||form.contains(input))return;event.preventDefault();selectView('settings');input.focus();status(`Check ${input.name} in Settings. ${input.validationMessage}`);},{capture:true,signal:abort.signal});
   container.addEventListener('keydown',event=>{if(destination==='settings'&&(event as KeyboardEvent).key==='Enter'&&(event.target as HTMLInputElement).form===form)event.preventDefault();},{signal:abort.signal});
   container.querySelector('.pro-tabs')!.addEventListener('keydown',event=>{
@@ -460,5 +476,5 @@ export function mountProPanel(container:HTMLElement, initial:PageTarget, chartEn
   if(preview)applyPreferences(defaultPreferences());
   hotkeys=mountProHotkeys(container,{enabled:()=>hotkeysEnabled&&destination==='trade'&&ready&&health?.engine==='RUNNING'&&!busy&&!editing&&!durablePending&&!pendingBlocked&&!withdrawalPending&&!unknownOrders&&node('review').hidden&&!document.hidden,mapping:()=>({buyKeys:preferences?.buyKeys??[],sellKeys:preferences?.sellKeys??[]}),binding:async()=>session?readProTradeBinding(target,mint,captureSession()):undefined,onAction:quickMarket,onError:status});
   renderTicket();void refresh();const timer=window.setInterval(()=>{publishEntry();renderMark();if(portfolio)renderPortfolio(portfolio);if(!eventPort||!ready||health?.engine!=='RUNNING'||Date.now()-lastSyncAt>=60000)void refresh();else if(session)refreshPortfolio(captureSession(),epoch);},15000);const visible=()=>{if(document.hidden){stopEvents();clearEntry();}else void refresh();hotkeySyncKey='';controls();};document.addEventListener('visibilitychange',visible,{signal:abort.signal});
-  return {refresh,openSettings(){void navigate('settings');},update(next:PageTarget,nextMint?:string,market?:MarketHint){const changed=JSON.stringify(target)!==JSON.stringify(next)||mint!==(nextMint??(next.mintHint??(next.kind==='MINT'?next.address:'')));target={...next};mint=nextMint??(next.mintHint??(next.kind==='MINT'?next.address:''));hint=market;if(changed){clearEntry();clearPortfolio();epoch++;if(quoteTimer!==undefined)window.clearTimeout(quoteTimer);currentMc=undefined;quoteAt=undefined;renderTicket();if(durablePending){reviewedOperation={operation:durablePending.operation,revision:durablePending.revision,action:durablePending.action};review.accept(durablePending.spec,review.version(),durablePending.id,durablePending);renderReview(durablePending.spec,true);}node('entry-steps').replaceChildren();updateAllocations();void refresh();}renderMark();controls();},destroy(){setup?.destroy();clearEntry();clearPortfolio();alive=false;epoch++;ready=false;stopEvents();review.invalidate();abort.abort();hotkeys?.destroy();preferencesView?.destroy();withdrawals.destroy();wallet.destroy();connectionSettings?.destroy();window.clearInterval(timer);if(quoteTimer!==undefined)window.clearTimeout(quoteTimer);if(container.querySelector('.pro-panel')===mountedRoot)container.replaceChildren();}};
+  return {refresh,openSettings(){void navigate('settings');},update(next:PageTarget,nextMint?:string,market?:MarketHint){const changed=JSON.stringify(target)!==JSON.stringify(next)||mint!==(nextMint??(next.mintHint??(next.kind==='MINT'?next.address:'')));target={...next};mint=nextMint??(next.mintHint??(next.kind==='MINT'?next.address:''));hint=market;if(changed){clearEntry();clearPortfolio();epoch++;if(quoteTimer!==undefined)window.clearTimeout(quoteTimer);currentMc=undefined;quoteAt=undefined;renderTicket();if(durablePending){reviewedOperation={operation:durablePending.operation,revision:durablePending.revision,action:durablePending.action};review.accept(durablePending.spec,review.version(),durablePending.id,durablePending);renderReview(durablePending.spec,true);}node('entry-steps').replaceChildren();updateAllocations();void refresh();}renderMark();controls();},destroy(){browser.storage?.onChanged?.removeListener(preferencesChanged);setup?.destroy();clearEntry();clearPortfolio();alive=false;epoch++;ready=false;stopEvents();review.invalidate();abort.abort();hotkeys?.destroy();preferencesView?.destroy();withdrawals.destroy();wallet.destroy();connectionSettings?.destroy();window.clearInterval(timer);if(quoteTimer!==undefined)window.clearTimeout(quoteTimer);if(container.querySelector('.pro-panel')===mountedRoot)container.replaceChildren();}};
 }

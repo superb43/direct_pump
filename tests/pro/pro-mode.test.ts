@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {canonicalJson} from '../../src/pro/contracts';
+import {defaultPreferences} from '../../src/pro/trading-preferences';
 import type { ProHealth, ProSettings } from '../../src/pro/contracts';
 
 const transport = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn(), fetch: vi.fn(), tabs: vi.fn() }));
-vi.mock('wxt/browser', () => ({ browser: { tabs: { create: transport.tabs } } }));
+vi.mock('wxt/browser', () => ({ browser: { storage:{local:{get:async()=>({})}},tabs: { create: transport.tabs } } }));
 vi.mock('../../src/pro/client', () => ({ loadProSettings: transport.load, saveProSettings: transport.save, proFetch: transport.fetch, pair: vi.fn(), streamProEvents: vi.fn() }));
 vi.mock('../../src/diagnostics/diagnostics', () => ({ logEvent: vi.fn(), exportDiagnostics: vi.fn(), setDebugUntil: vi.fn() }));
 import { allowedProRequest, createProWorker } from '../../src/pro/worker';
@@ -67,10 +69,10 @@ describe('Pro sidepanel mode authority', () => {
     settings.enabled=true;
     const expectedSession={serverId:'server',deviceId:'device',wallet:health.wallet};
     const body={orderId:'123e4567-e89b-42d3-a456-426614174000',spec:{},expectedWallet:'substituted'};
-    expect(await createProWorker().handle({type:'PRO',action:'REQUEST',method:'POST',path:'/v2/orders',body,expectedSession})).toMatchObject({ok:true});
+    expect(await createProWorker().handle({type:'PRO',action:'REQUEST',method:'POST',path:'/v2/orders',body,expectedSession,expectedPreferences:canonicalJson(defaultPreferences())})).toMatchObject({ok:true});
     expect(transport.fetch).toHaveBeenLastCalledWith('POST','/v2/orders',{...body,expectedWallet:health.wallet},expectedSession);
     settings.deviceId='another-device';transport.fetch.mockClear();
-    expect(await createProWorker().handle({type:'PRO',action:'REQUEST',method:'POST',path:'/v2/orders',body,expectedSession})).toMatchObject({ok:false,error:expect.stringContaining('session changed')});
+    expect(await createProWorker().handle({type:'PRO',action:'REQUEST',method:'POST',path:'/v2/orders',body,expectedSession,expectedPreferences:canonicalJson(defaultPreferences())})).toMatchObject({ok:false,error:expect.stringContaining('session changed')});
     expect(transport.fetch).not.toHaveBeenCalled();
   });
   it('refuses a wallet change or unbound MC mutation before posting anything', async () => {

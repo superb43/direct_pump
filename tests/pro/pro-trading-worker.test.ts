@@ -28,3 +28,23 @@ it('does not let a stalled portfolio read hold order mutations and rejects a cha
  expect(await worker.handle({type:'PRO',action:'REQUEST',method:'POST',path:'/v1/orders/12345678-1234-4123-8123-123456789abc/cancel'})).toMatchObject({ok:true});
  state.settings.serverId='other';resolve({wallet:'old'});expect(await reading).toMatchObject({ok:false});
 });
+
+import {canonicalJson} from '../../src/pro/contracts';
+it('serializes cross-view preference saves before the final order policy fence',async()=>{
+ const worker=createProWorker(),previous=defaultPreferences(),expectedSession={serverId:'server',deviceId:'device',wallet:'wallet'};
+ state.fetch.mockImplementation(async(_method:string,path:string)=>path==='/v1/health'?{serverId:'server',wallet:'wallet'}:{});
+ const request={type:'PRO' as const,action:'REQUEST' as const,method:'POST',path:'/v2/orders',body:{orderId:'123e4567-e89b-42d3-a456-426614174000',spec:{}},expectedSession,expectedPreferences:canonicalJson(previous)};
+ const saved=worker.handle({type:'PRO',action:'PREFERENCES_SAVE',preferences:{...previous,confirmMarket:true}});
+ const rejected=worker.handle(request);await saved;
+ expect(await rejected).toMatchObject({ok:false,error:expect.stringContaining('preferences changed')});
+ expect(state.fetch.mock.calls.some(([method])=>method==='POST')).toBe(false);
+ expect(await worker.handle({...request,expectedPreferences:undefined})).toMatchObject({ok:false});
+ expect(await worker.handle({...request,expectedPreferences:canonicalJson(state.stored.proTradingPreferences)})).toMatchObject({ok:true});
+ expect(state.fetch).toHaveBeenLastCalledWith('POST','/v2/orders',{...request.body,expectedWallet:'wallet'},expectedSession);
+});
+it('rechecks persisted profile after asynchronous server wallet validation',async()=>{
+ const worker=createProWorker(),previous=defaultPreferences(),next=defaultPreferences();next.profiles[0]!.buyPresets=['0.2'];
+ state.fetch.mockImplementation(async()=>{state.stored.proTradingPreferences=next;return {serverId:'server',wallet:'wallet'};});
+ expect(await worker.handle({type:'PRO',action:'REQUEST',method:'POST',path:'/v2/strategies',body:{spec:{}},expectedSession:{serverId:'server',deviceId:'device',wallet:'wallet'},expectedPreferences:canonicalJson(previous)})).toMatchObject({ok:false,error:expect.stringContaining('preferences changed')});
+ expect(state.fetch).toHaveBeenCalledTimes(1);
+});

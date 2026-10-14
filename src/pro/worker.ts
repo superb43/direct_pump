@@ -1,7 +1,7 @@
 import { browser } from 'wxt/browser';
 import { loadProSettings, saveProSettings, pair, proFetch, streamProEvents } from './client';
 import { exportDiagnostics, setDebugUntil,logEvent } from '../diagnostics/diagnostics';
-import { PRO_API_VERSION } from './contracts';
+import { canonicalJson, PRO_API_VERSION } from './contracts';
 import type { ProEvent, ProHealth, ProReply, ProSettings, ProRequest } from './contracts';
 import type {Browser} from 'wxt/browser';
 import {defaultPreferences,validateTradingPreferences} from './trading-preferences';
@@ -100,6 +100,13 @@ export function createProWorker() {
             if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Invalid reviewed order body.');
             // Wallet identity is part of the authenticated body, not a caller-controlled spec field.
             body = { ...body, expectedWallet: expected.wallet };
+          }
+          // Preference saves and order mutations share this queue. Fence the captured
+          // native-view policy immediately before dispatch, including after health reads.
+          if((method==='POST'&&/^\/v2\/(orders|strategies)$/.test(path))||request.expectedPreferences!==undefined){
+            const stored=(await browser.storage.local.get('proTradingPreferences')).proTradingPreferences;
+            const preferences=stored===undefined?defaultPreferences():validateTradingPreferences(stored);
+            if(request.expectedPreferences!==canonicalJson(preferences))throw new Error('Trading preferences changed. Review the order again.');
           }
           data = await proFetch(method, path, body, request.expectedSession); break;
         }
